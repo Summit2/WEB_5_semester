@@ -1,0 +1,10 @@
+<!-- здесь мы делаем импорт конкретного заказа по id по ./order/id -->
+
+{% extends 'base.html' %}
+
+{% block title %}Заказ №{{ data.id }}{% endblock %}
+
+{% block content %}
+
+    <div>Информация о заказе №{{ data.id }}</div>
+{% endblock %}

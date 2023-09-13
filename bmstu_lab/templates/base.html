@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en" class="h-100">
+<head>
+  <meta charset="utf-8">
+    <title>{% block title %}{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/ex.css' %}">
+</head>
+<body>
+
+    Hello BMSTU students! Today is {{data.current_date}}
+    <!-- в файле orders.html лежит блок content -->
+    {% block content %}{% endblock %}
+</body>
+</html>
