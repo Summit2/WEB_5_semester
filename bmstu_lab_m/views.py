@@ -20,11 +20,14 @@ from datetime import date
 
 
     # кроме html видимо можно передавать еще и типа json (или словарей)
-def GetOrders(request):
+
+
+
+def GetAllCargo(request):
     return render(
-        request,'orders.html', {'data' : {
+        request,'all_cargo.html', {'data' : {
         'current_date': date.today(),
-        'orders': [
+        'items': [
             {'title': 'Книга с картинками', 'id': 1},
             {'title': 'Бутылка с водой', 'id': 2},
             {'title': 'Коврик для мышки', 'id': 3},
@@ -32,8 +35,8 @@ def GetOrders(request):
     }}
     )
 
-def GetOrder(request, id):
-    return render(request, 'order.html', {'data' : {
+def GetCurrentCargo(request, id):
+    return render(request, 'current_cargo.html', {'data' : {
         'current_date': date.today(),
         'id': id
     }})

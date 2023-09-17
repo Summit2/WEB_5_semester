@@ -24,8 +24,8 @@ from bmstu_lab_m import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    path('', views.GetOrders),
-    path('order/<int:id>/', views.GetOrder, name='order_url'),
+    path('', views.GetAllCargo),
+    path('order/<int:id>/', views.GetCurrentCargo, name='order_url'), # конкретнeтный груз и его описание
 ]
 
 # urlpatterns = [
