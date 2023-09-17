@@ -2,12 +2,13 @@
 
 {% extends 'base.html' %}
 
-{% block title %}Грузы для доставки на Starship{% endblock %}
+{% block title %}Грузы на Starship
+<b>Список грузов, которые может заказать Starship</b>{% endblock %}
 
 {% block content %}
 <ul>
     {% for item in data.items %}
-    {% include 'cargo_element.html' with element=item %}
+    <!-- {% include 'cargo_element.html' with element=item %} -->
     {% empty %}
     <!-- блок empty будет использован, если массив окажется пустым или неизвестен -->
         <li>Список пуст</li>

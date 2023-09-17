@@ -26,8 +26,8 @@ from datetime import date
 def GetAllCargo(request):
     return render(
         request,'all_cargo.html', {'data' : {
-        'current_date': date.today(),
-        'items': [
+        # 'current_date': date.today(),
+        'data': [
             {'title': 'Книга с картинками', 'id': 1},
             {'title': 'Бутылка с водой', 'id': 2},
             {'title': 'Коврик для мышки', 'id': 3},
@@ -36,7 +36,7 @@ def GetAllCargo(request):
     )
 
 def GetCurrentCargo(request, id):
-    return render(request, 'current_cargo.html', {'data' : {
-        'current_date': date.today(),
+    return render(request, 'current_cargo.html', 
+        {'data' : {
         'id': id
     }})
