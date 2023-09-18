@@ -27,12 +27,12 @@ def GetAllCargo(request):
     
     return render(
         request,'all_cargo.html', 
-        {'data' : { # в data вложены items имеет смысл исправить
-        # 'current_date': date.today(), 
+        {'data' : # в data вложены items имеет смысл исправить
+        {
         'items': [
-            {'title': 'Книга с картинками', 'id': 1},
-            {'title': 'Бутылка с водой', 'id': 2},
-            {'title': 'Коврик для мышки', 'id': 3},
+            {'title': 'Канистра с водой', 'id': 1, 'image_path' : ''},
+            {'title': 'Хлеб', 'id': 2, 'image_path' : '/home/ilya/Рабочий стол/BMSTU/5 semester/WEB/bmstu_lab/bmstu_lab/static/images/bread_for_astronauts.jpg' },
+            {'title': 'Молоток', 'id': 3, 'image_path' : 'bmstu_lab/bmstu_lab/static/images/space_hammer'},
         ]
     }}
     )
@@ -42,3 +42,8 @@ def GetCurrentCargo(request, id):
         {'data' : {
         'id': id
     }})
+
+
+def sendText(request):
+    input_text = request.POST['text']
+    

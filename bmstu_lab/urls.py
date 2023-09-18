@@ -25,11 +25,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     path('', views.GetAllCargo),
-    path('item/<int:id>/', views.GetCurrentCargo, name='item_url') # конкретный груз и его описание
+    path('item/<int:id>/', views.GetCurrentCargo, name='item_url'), # конкретный груз и его описание
+
+    path('sendText', views.sendText, name='sendText')
 ]
 
-# urlpatterns = [
-#     path('admin/', admin.site.urls),
-#     path('hello/', views.hello),
-#     path('', views.GetOrders)
-# ]
+
