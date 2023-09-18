@@ -30,9 +30,9 @@ def GetAllCargo(request):
         {'data' : # в data вложены items имеет смысл исправить
         {
         'items': [
-            {'title': 'Канистра с водой', 'id': 1, 'image_path' : ''},
-            {'title': 'Хлеб', 'id': 2, 'image_path' : '/home/ilya/Рабочий стол/BMSTU/5 semester/WEB/bmstu_lab/bmstu_lab/static/images/bread_for_astronauts.jpg' },
-            {'title': 'Молоток', 'id': 3, 'image_path' : 'bmstu_lab/bmstu_lab/static/images/space_hammer'},
+            {'title': 'Канистра с водой', 'id': 1, 'image_name' : ''},
+            {'title': 'Хлеб', 'id': 2, 'image_name' : '/home/ilya/Рабочий стол/BMSTU/5 semester/WEB/bmstu_lab/bmstu_lab/static/images/bread_for_astronauts.jpg' },
+            {'title': 'Молоток', 'id': 3, 'image_name' : 'bmstu_lab/bmstu_lab/static/images/space_hammer.jpg'},
         ]
     }}
     )

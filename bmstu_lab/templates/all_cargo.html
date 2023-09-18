@@ -4,6 +4,17 @@
 
 {% block title %}Грузы на Starship{% endblock %}
 
+{% block sort_bar %} 
+
+    
+    <form action="sendText" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      Отсортировать данные
+      <input name="text" type="text">
+      <input type="submit" value="Submit" >
+  </form>
+{% endblock %}
+
 {% block content %}
 <b>Cписок грузов для отправки на Starship</b>
 
@@ -11,7 +22,7 @@
     {% for item in data.items %}
     {% include 'cargo_item.html' with element=item %}
     {% load static %}
-    <img src="{item.image_path}">  
+    <img src="{{item.image_name}}">  
     <!-- блок empty будет использован, если массив окажется пустым или неизвестен -->
     {% empty %}
        <li>Список пуст</li>

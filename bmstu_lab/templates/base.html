@@ -2,18 +2,17 @@
 <html lang="en" class="h-100">
 <head>
   <meta charset="utf-8">
+  
+ 
+   
     <title>{% block title %}{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'css/mystyle.css' %}"> 
 </head>
 <body>
-  <div class="cargo-text">
-    
-    <form action="sendText" method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <input name="text" type="text"><br><br>
-      <input type="submit" value="Submit" >
-  </form>
+  <div class="rectangle">
+  
+  {% block sort_bar %} {% endblock %}
 
     <!-- в файле all_cargo.html лежит блок content -->
     {% block content %}{% endblock %}
