@@ -24,9 +24,11 @@ from datetime import date
 
 
 def GetAllCargo(request):
+    
     return render(
-        request,'all_cargo.html', {'data' : {
-        # 'current_date': date.today(),
+        request,'all_cargo.html', 
+        {'data' : { # в data вложены items имеет смысл исправить
+        # 'current_date': date.today(), 
         'items': [
             {'title': 'Книга с картинками', 'id': 1},
             {'title': 'Бутылка с водой', 'id': 2},

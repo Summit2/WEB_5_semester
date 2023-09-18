@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
     <title>{% block title %}{% endblock %}</title>
-    <!-- {% load static %}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/ex.css' %}"> -->
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/mystyle.css' %}"> 
 </head>
 <body>
-
+  <div class="cargo-text">
     
     <!-- в файле all_cargo.html лежит блок content -->
     {% block content %}{% endblock %}
+  </div>
 </body>
 </html>
