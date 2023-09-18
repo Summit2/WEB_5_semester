@@ -27,7 +27,7 @@ def GetAllCargo(request):
     return render(
         request,'all_cargo.html', {'data' : {
         # 'current_date': date.today(),
-        'data': [
+        'items': [
             {'title': 'Книга с картинками', 'id': 1},
             {'title': 'Бутылка с водой', 'id': 2},
             {'title': 'Коврик для мышки', 'id': 3},
