@@ -2,6 +2,7 @@
     font-size: 40px;
   }
 .rectangle {
+  
     counter-reset: li; 
     list-style: none; 
     font: 14px "Trebuchet MS", "Lucida Sans";
@@ -14,8 +15,8 @@
     display: block;
     padding: .4em .4em .4em .8em;
     margin: .5em 0 .5em 2.5em;
-    background: #D3D4DA;
-    color: #444;
+    background: #000000;
+    color: #ffffff;
     text-decoration: none;
     transition: all .3s ease-out;
     }
@@ -49,4 +50,5 @@
     }
 .rectangle li {
   list-style-type: none; 
+  padding: 0;
 }
