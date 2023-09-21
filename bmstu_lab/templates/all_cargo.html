@@ -18,13 +18,14 @@
 {% block content %}
 <b>Cписок грузов для отправки на Starship</b>
 
-<ul>
+<ul class="card-list">
   
     {% for item in data.items %}
   
     {% include 'cargo_item.html' with element=item %}
-    {% load static %}
-    <img src="{{item.image_name}}">  
+    <!-- {% load static %}
+    <img src="{{item.image_name}}">   -->
+    
     <!-- блок empty будет использован, если массив окажется пустым или неизвестен -->
     {% empty %}
        <li>Список пуст</li>
