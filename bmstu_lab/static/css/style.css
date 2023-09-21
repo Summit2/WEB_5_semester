@@ -1,0 +1,33 @@
+/* Стилизация списка карточек */
+.card-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+/* Стилизация карточки */
+.card {
+    width: calc(33.33% - 20px); /* Ширина карточки (можно настроить по своему усмотрению) */
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Стилизация заголовка карточки */
+.card-title {
+    font-size: 1.5rem;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+/* Стилизация текста карточки */
+.card-text {
+    font-size: 1rem;
+    margin: 0;
+}

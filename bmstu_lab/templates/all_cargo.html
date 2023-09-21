@@ -7,19 +7,21 @@
 {% block sort_bar %} 
 
     
-    <form action="sendText" method="post" enctype="multipart/form-data">
+    <!-- <form action="sendText" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       Отсортировать данные
       <input name="text" type="text">
       <input type="submit" value="Submit" >
-  </form>
+  </form> -->
 {% endblock %}
 
 {% block content %}
 <b>Cписок грузов для отправки на Starship</b>
 
 <ul>
+  
     {% for item in data.items %}
+  
     {% include 'cargo_item.html' with element=item %}
     {% load static %}
     <img src="{{item.image_name}}">  
@@ -27,5 +29,6 @@
     {% empty %}
        <li>Список пуст</li>
     {% endfor %}
+  
 </ul>
 {% endblock %}

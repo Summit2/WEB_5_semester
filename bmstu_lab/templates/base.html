@@ -5,15 +5,15 @@
    
     <title>{% block title %}{% endblock %}</title>
     {% load static %}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/mystyle.css' %}"> 
+    <link rel="stylesheet" href="{% static 'css/style.css' %}"> 
 </head>
 <body>
-  <div class="rectangle">
+  
   
   {% block sort_bar %} {% endblock %}
 
     <!-- в файле all_cargo.html лежит блок content -->
     {% block content %}{% endblock %}
-  </div>
+  
 </body>
 </html>
