@@ -6,14 +6,25 @@
     <title>{% block title %}{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}"> 
+    <style>
+      html, body {
+        height: 100%; /* Задайте высоту 100%, чтобы обеспечить цвет фона для всей страницы */
+        margin: 0; /* Уберите отступы по умолчанию */
+        padding: 0; /* Уберите внутренние отступы по умолчанию */
+      }
+      body {
+        background-color: bisque;
+      }
+    </style>
 </head>
 <body>
-  
-  
+ 
+  {% load static %}
+  <img src="{% static '/space_hammer.jpg' %}" >
   {% block sort_bar %} {% endblock %}
 
     <!-- в файле all_cargo.html лежит блок content -->
     {% block content %}{% endblock %}
-  
+
 </body>
 </html>

@@ -121,6 +121,9 @@ STATICFILES_DIRS =[
     BASE_DIR/'bmstu_lab/static' ,
     BASE_DIR/'bmstu_lab/static/css' ] # статика подключилась с этой строчки
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # MEDIA_ROOT = os.path.join(BASE_DIR, 'static/images')
 
 # Default primary key field type
