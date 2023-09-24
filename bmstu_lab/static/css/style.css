@@ -23,6 +23,7 @@
 
 /* Стилизация заголовка карточки */
 .card-title {
+    
     font-size: 1.5rem;
     margin-top: 0;
     margin-bottom: 10px;
@@ -30,6 +31,11 @@
 
 /* Стилизация текста карточки */
 .card-text {
+    
     font-size: 1rem;
     margin: 0;
+}
+/*размер шрифта*/
+.font b{
+ font-size: 45px;
 }

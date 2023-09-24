@@ -3,28 +3,31 @@
 <head>
   <meta charset="utf-8">
    
-    <title>{% block title %}{% endblock %}</title>
+    <title class="card-font">{% block title %}{% endblock %}</title>
+
+    <!-- подгружаем стили -->
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}"> 
-    <style>
-      html, body {
-        height: 100%; /* Задайте высоту 100%, чтобы обеспечить цвет фона для всей страницы */
-        margin: 0; /* Уберите отступы по умолчанию */
-        padding: 0; /* Уберите внутренние отступы по умолчанию */
-      }
-      body {
-        background-color: bisque;
-      }
-    </style>
+
+    <!-- ставим стиль для фона -->
+        <style>
+          html, body {
+            height: 100%; /* Задайте высоту 100%, чтобы обеспечить цвет фона для всей страницы */
+            margin: 0; /* Уберите отступы по умолчанию */
+            padding: 0; /* Уберите внутренние отступы по умолчанию */
+          }
+          body {
+            background-color: bisque;
+          }
+        </style>
 </head>
-<body>
- 
-  {% load static %}
-  <img src="{% static '/space_hammer.jpg' %}" >
-  {% block sort_bar %} {% endblock %}
+  <body>
+  
+  <!-- добавляем сортировку -->
+    {% block sort_bar %} {% endblock %}
 
-    <!-- в файле all_cargo.html лежит блок content -->
-    {% block content %}{% endblock %}
+      <!-- в файле all_cargo.html лежит блок content -->
+      {% block content %}{% endblock %}
 
-</body>
+  </body>
 </html>
