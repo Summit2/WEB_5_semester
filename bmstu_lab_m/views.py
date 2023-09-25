@@ -30,7 +30,7 @@ def GetAllCargo(request):
         {'data' : # в data вложены items имеет смысл исправить
         {
         'items': [
-            {'title': 'Канистра с водой', 'id': 1, 'image_name' : 'bread_for_astronauts.jpg'},
+            {'title': 'Канистра с водой', 'id': 1, 'image_name' : 'water.jpg'},
             {'title': 'Хлеб', 'id': 2, 'image_name' : 'bread_for_astronauts.jpg' },
             {'title': 'Молоток', 'id': 3, 'image_name' : 'space_hammer.jpg'},
         ]
