@@ -32,7 +32,7 @@
   
     {% include 'cargo_item.html' with element=item %}
     {% load static %}
-    <img src="{{item.image_name}}">  
+    <img src="{% static item.image_name %}">  
     
     <!-- блок empty будет использован, если массив окажется пустым или неизвестен -->
     {% empty %}
