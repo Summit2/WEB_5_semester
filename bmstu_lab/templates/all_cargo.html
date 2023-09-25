@@ -16,13 +16,16 @@
 <!-- поиск -->
 {% block find_bar %} 
 
-    
-    <!-- <form action="sendText" method="post" enctype="multipart/form-data">
+    <div class="font-ordinary">
+
+     <form action="find_items" method="post" enctype="multipart/form-data">
       {% csrf_token %}
-      Отсортировать данные
+      Поиск грузов
       <input name="text" type="text">
-      <input type="submit" value="Submit" >
-  </form> -->
+      <input type="submit" value="Найти" >
+  </form> 
+
+</div>
 {% endblock %}
 
 {% block content %}

@@ -10,6 +10,11 @@
 
 {% block content %}
 
-    <div class="font-ordinary">Информация о заказе №{{ data.id }}</div>
+    <div class="font-ordinary">Информация о заказе №{{ data.id }}
+
+        <br>
+
+        {{data.items.text}}
+    </div>
 
 {% endblock %}
