@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
    
-    <title class="card-font">{% block title %}{% endblock %}</title>
+    <title class>{% block heading %}{% endblock %}</title>
 
     <!-- подгружаем стили -->
     {% load static %}
@@ -22,9 +22,10 @@
         </style>
 </head>
   <body>
-  
+  <!-- добавляем заглавие  -->
+  {% block title %} {% endblock %}
   <!-- добавляем сортировку -->
-    {% block sort_bar %} {% endblock %}
+    {% block find_bar %} {% endblock %}
 
       <!-- в файле all_cargo.html лежит блок content -->
       {% block content %}{% endblock %}
