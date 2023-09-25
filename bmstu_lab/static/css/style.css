@@ -1,17 +1,18 @@
 /* Стилизация списка карточек */
 .card-list {
-    
     list-style: none;
     padding: 0;
     margin: 1;
-   
-    flex-direction: row; /* Установить направление flex-контейнера на вертикальное (по умолчанию) */
-    align-items: stretch; /* Растянуть карточки на всю высоту контейнера */
+    display: flex;
+    flex-direction: row; /* Установить направление flex-контейнера на горизонтальное */
+    flex-wrap: wrap; /* Позволяет карточкам переноситься на новую строку, если экран слишком узкий */
+    justify-content: space-between; /* Распределить карточки равномерно по горизонтали */
+    
 }
 
 /* Стилизация карточки */
 .card {
-    
+    justify-content: center; /* выравнивание информации по центру*/
     background-color: #f0f0f0;
     border: 1px solid #4e1010;
     border-radius: 10px;
@@ -20,8 +21,22 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-left: 10px; /* Добавляет отступ слева */
     margin-right: 10px; /* Добавляет отступ справа */
-    flex: 1; /* Растягивать карточки по вертикали на всю высоту контейнера */
+   /* flex-basis: calc(33.333% - 20px);  Устанавливает базовую ширину карточки, учитывая отступы */
 }
+
+/* Стилизация заголовка карточки */
+.card-title {
+    font-size: 1.5rem;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+/* Стилизация текста карточки */
+.card-text {
+    font-size: 1rem;
+    margin: 0;
+}
+
 .card h1 {
     font-size: 40px;
 }
@@ -43,7 +58,13 @@
 .font b{
  font-size: 50px;
 }
-
+.font-ordinary {
+    font-size: 40px;
+}
+.images{
+    height: 300px;
+            width: 400px; 
+}
 /* 
 .images {
 

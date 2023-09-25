@@ -9,7 +9,7 @@
 <!-- заглавие -->
 {% block  title %}
 <br>
-<b class="font" >  Cписок грузов для отправки на Starship</b>
+<b class="font">  Cписок грузов для отправки на Starship</b>
 {% endblock %}
 
 
@@ -38,11 +38,17 @@
     
   
     
-
-    <img src="{% static item.image_name %}" class ="images"> 
+    <div class = images>
+      <img src="{% static item.image_name %}" class ="images"> 
+    </div>
+    
     <br>
     
-    <h1>{{item.title}}</h1>
+          <div 
+          class="font-ordinary">{{item.title}}
+          </div>
+
+          
     <a href="{% url 'item_url' item.id %}" class = "beautiful-link"> 
       
      <h2>Подробнее...</h2>

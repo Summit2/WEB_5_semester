@@ -2,10 +2,14 @@
 
 {% extends 'base.html' %}
 
-{% block title %}Заказ №{{ data.id }}{% endblock %}
+{% block title %}
+<b class="font">
+Заказ №{{ data.id }}
+</b>
+{% endblock %}
 
 {% block content %}
 
-    <div>Информация о заказе №{{ data.id }}</div>
+    <div class="font-ordinary">Информация о заказе №{{ data.id }}</div>
 
 {% endblock %}
