@@ -35,13 +35,15 @@
   {% load static %}
   <li class = "card">
     
-    <h1>{{item.title}}</h1>
+    
   
-    <br>
+    
 
     <img src="{% static item.image_name %}" class ="images"> 
-
-    <a href="{% url 'item_url' item.id %}" > 
+    <br>
+    
+    <h1>{{item.title}}</h1>
+    <a href="{% url 'item_url' item.id %}" class = "beautiful-link"> 
       
      <h2>Подробнее...</h2>
     </a>

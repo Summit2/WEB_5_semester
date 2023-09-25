@@ -33,6 +33,9 @@ def GetAllCargo(request):
             {'title': 'Канистра с водой', 'id': 1, 'image_name' : 'water.jpg'},
             {'title': 'Хлеб', 'id': 2, 'image_name' : 'bread_for_astronauts.jpg' },
             {'title': 'Молоток', 'id': 3, 'image_name' : 'space_hammer.jpg'},
+            {'title': 'Гаечный ключ', 'id': 4, 'image_name' : 'wrench.jpg'},
+            {'title': 'Борщ', 'id': 5, 'image_name' : 'borsh.jpg'},
+            {'title': 'Кофе', 'id': 6, 'image_name' : 'coffee.jpg'},
         ]
     }}
     )

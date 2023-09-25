@@ -5,7 +5,7 @@
     padding: 0;
     margin: 1;
    
-    flex-direction: column; /* Установить направление flex-контейнера на вертикальное (по умолчанию) */
+    flex-direction: row; /* Установить направление flex-контейнера на вертикальное (по умолчанию) */
     align-items: stretch; /* Растянуть карточки на всю высоту контейнера */
 }
 
@@ -52,3 +52,19 @@
 
 }
  */
+ .beautiful-link {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #6461e7de; /* Цвет фона */
+    color: #fff; /* Цвет текста */
+    text-decoration: none; /* Убираем подчеркивание ссылки */
+    border-radius: 5px; /* Закругленные углы */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* Тень */
+    font-weight: bold;
+    transition: background-color 0.3s ease; /* Плавное изменение цвета фона при наведении */
+}
+
+.beautiful-link:hover {
+
+    background-color: #0026fd; /* Новый цвет фона при наведении */
+}
