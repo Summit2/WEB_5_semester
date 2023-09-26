@@ -2,17 +2,17 @@
 .card-list {
     list-style: none;
     padding: 0;
-    margin: 1;
+    margin: 0;
     display: flex;
     flex-direction: row; /* Установить направление flex-контейнера на горизонтальное */
     flex-wrap: wrap; /* Позволяет карточкам переноситься на новую строку, если экран слишком узкий */
-    justify-content: space-between; /* Распределить карточки равномерно по горизонтали */
+     /* justify-content: space-between; Распределить карточки равномерно по горизонтали */
     
 }
 
 /* Стилизация карточки */
 .card {
-    justify-content: center; /* выравнивание информации по центру*/
+    justify-content: right; /* center выравнивание информации по центру*/
     background-color: #f0f0f0;
     border: 1px solid #4e1010;
     border-radius: 10px;
@@ -65,14 +65,11 @@
     height: 300px;
             width: 400px; 
 }
-/* 
-.images {
-
-    width: 300px;
-    height: 200px; 
-
-}
- */
+/* .current-image {
+    justify-content: center;
+    height: 300px;
+    width: 400px; 
+} */
  .beautiful-link {
     display: inline-block;
     padding: 10px 20px;
