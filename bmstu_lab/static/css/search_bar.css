@@ -1,0 +1,20 @@
+.search-bar{
+
+    
+    padding: 10px;
+    font-size: 30px;
+    border: 2px solid #ccc;
+    border-radius: 10px; /* Round the corners */
+    outline: none; /* Remove the input outline */
+}
+.search-button{
+
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 10px; /* Round the corners */
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
