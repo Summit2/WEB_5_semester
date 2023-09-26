@@ -16,7 +16,7 @@
 <!-- поиск -->
 {% block find_bar %} 
 
-    <div class="font-ordinary">
+   <!--<div class="font-ordinary">
 
      <form action="find_items" method="post" enctype="multipart/form-data">
       {% csrf_token %}
@@ -25,7 +25,15 @@
       <input type="submit" value="Найти" >
   </form> 
 
+</div>--> 
+<div class="font-ordinary">
+  <form action=""  method="get">
+    <label for="text">Поиск по названию</label>
+    <input id="text" name="sub" type="text" >
+    <input type="submit" value="Поиск">
+  </form>
 </div>
+<br>
 {% endblock %}
 
 {% block content %}
@@ -61,8 +69,10 @@
 
     <!-- блок empty будет использован, если массив окажется пустым или неизвестен -->
     {% empty %}
-       <li>Список пуст</li>
+    <div  class="font-ordinary">
+       <li>Список пуст!</li>
     {% endfor %}
+    </div>
   
 </ul>
 {% endblock %}

@@ -82,11 +82,26 @@ data = {'data' : # в data вложены items имеет смысл испра
     }}
 
 def GetAllCargo(request):
-    
-    return render(
-        request,'all_cargo.html', data
+    res=[]
+    input_text = request.GET.get("sub")
+    print(input_text)
+    if input_text is not None:
+        for elem in data['data']['items']:
         
-    )
+            if input_text in elem['title']:
+                res.append(elem)
+                print(elem)
+        return render(
+        request,'all_cargo.html', {'data' : {
+            'items' : res
+        } }
+                     )
+    else:
+    
+        return render(
+            request,'all_cargo.html', data
+            
+        )
 
 def GetCurrentCargo(request, id):
     arr = data["data"]['items']
