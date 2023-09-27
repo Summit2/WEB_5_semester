@@ -22,12 +22,12 @@ from bmstu_lab_m import views
 на сайте мы создаем свои уникальные идентификаторы - urls
 '''
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
     
     path('', views.GetAllCargo),
     path('item/<int:id>/', views.GetCurrentCargo, name='item_url'), # конкретный груз и его описание
 
-    path('sendText', views.sendText, name='sendText')
+    # path('sendText', views.sendText, name='sendText')
 ]
 
 from django.conf import settings
