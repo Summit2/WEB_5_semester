@@ -47,7 +47,11 @@
     
     
     <div class="delete-button">
-      <input type="button" value ="&#10060;">
+     
+      <form method="post" action="deleteCargo/">
+        {% csrf_token %}
+        <input type="button" name="del_btn" value ="&#10060;">
+    </form>
   </div>
   <br>
   
