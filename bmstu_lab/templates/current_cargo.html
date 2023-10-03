@@ -4,20 +4,21 @@
 
 {% block title %}
 <b class="font">
- {{title }}
+    {{data.item.title}}
 </b>
 {% endblock %}
 
 {% block content %}
 
     <div class="font-ordinary">
-
+        
         <br>
         {% load static %}
-        <img src="{% static image_name %}" class ="images">
+        <img src="{% static data.item.image_url %}" class ="images">
         <br>
-
-        {{text}}
+    Вес: {{data.item.weight}}
+    <br>
+       Описание: {{data.item.description}}
 
     </div>
 
