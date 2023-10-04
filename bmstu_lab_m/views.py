@@ -23,7 +23,7 @@ def GetAllCargo(request):
     
     res=[]
     input_text = request.GET.get("good_item")
-    data = Cargo.objects.filter(is_deleted=False)
+    data = Cargo.objects.filter(is_deleted=False).order_by('weight' )
     
     if input_text is not None:
         for elem in data:
