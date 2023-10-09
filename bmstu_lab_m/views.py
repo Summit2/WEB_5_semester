@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 import psycopg2
 
 from bmstu_lab_m.models import Cargo
-#from bmstu_lab_m.models import CargoOrder
+from bmstu_lab_m.models import CargoOrder
 #from bmstu_lab_m.models import DeliveryOrders
 #from bmstu_lab_m.models import Users
 
@@ -23,7 +23,7 @@ def GetAllCargo(request):
     
     res=[]
     input_text = request.GET.get("good_item")
-    data = Cargo.objects.filter(is_deleted=False).order_by('weight' )
+    data = Cargo.objects.filter(is_deleted=False).order_by('weight')
     
     if input_text is not None:
         for elem in data:

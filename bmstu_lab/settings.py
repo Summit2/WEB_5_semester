@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'bmstu_lab_m',
+    'rest_framework',
     # 'starship_delivery'
     
     # 'auth_group',
