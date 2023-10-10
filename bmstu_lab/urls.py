@@ -15,14 +15,26 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+from rest_framework import routers
 
 from bmstu_lab_m import views
+
+router = routers.DefaultRouter()
+
 ''' 
 на сайте мы создаем свои уникальные идентификаsторы - urls
 '''
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # path('', include(router.urls)),
+    path(r'stocks/', views.get_list, name='stocks-list'),
+    path(r'stocks/post/', views.post_list, name='stocks-post'),
+    path(r'stocks/<int:pk>/', views.get_detail, name='stocks-detail'),
+    path(r'stocks/<int:pk>/put/', views.put_detail, name='stocks-put'),
+    path(r'stocks/<int:pk>/delete/', views.delete_detail, name='stocks-delete'),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
     path('', views.GetAllCargo, name="all_cargo"),
     path('item/<int:id>/', views.GetCurrentCargo, name='item_url'), # конкретный груз и его описание
