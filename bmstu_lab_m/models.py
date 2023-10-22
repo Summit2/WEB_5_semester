@@ -89,7 +89,13 @@ class Cargo(models.Model):
         managed = False
         db_table = 'cargo'
 
+    def save_binary_data_from_file_path(self, file_path):
+        with open(file_path, 'rb') as file:
+            binary_data = file.read()
+            self.image_binary = binary_data
+        self.save()
 
+        
 class CargoOrder(models.Model):
     id_cargo = models.ForeignKey(Cargo, models.DO_NOTHING, db_column='id_cargo', blank=True, null=True)
     id_order = models.ForeignKey('DeliveryOrders', models.DO_NOTHING, db_column='id_order', blank=True, null=True)

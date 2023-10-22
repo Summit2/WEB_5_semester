@@ -108,10 +108,18 @@ class CargoList(APIView):
         Добавляет новый груз
         """
         serializer = self.serializer_class(data=request.data)
+        
         if serializer.is_valid():
-            serializer.save()
+            bi_image_path = request.data.get('image_binary')
+            binary_data = self.new_method(bi_image_path)
+            serializer.save(image_binary=binary_data)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def new_method(self, bi_image_path):
+        with open(bi_image_path, 'rb') as file:
+            binary_data = file.read()
+        return binary_data
 
 class CargoDetail(APIView):
     model_class = Cargo
