@@ -84,7 +84,7 @@ class Cargo(models.Model):
     weight = models.IntegerField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_deleted = models.BooleanField(blank=True, null=True)
-
+    image_binary = models.BinaryField(blank=True, null=True)
     class Meta:
         managed = False
         db_table = 'cargo'

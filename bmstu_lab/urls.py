@@ -34,10 +34,16 @@ urlpatterns = [
     # path(r'cargo/<int:pk>/', views.get_detail, name='cargo-detail'),
     # path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
     # path(r'cargo/<int:pk>/delete/', views.delete_detail, name='cargo-delete'),
-    path(r'cargo/', views.StockList.as_view(), name='cargo-list'),
-    path(r'cargo/<int:pk>/', views.StockDetail.as_view(), name='cargo-detail'),
+    path(r'cargo/', views.CargoList.as_view(), name='cargo-list'),
+    path(r'cargo/<int:pk>/', views.CargoDetail.as_view(), name='cargo-detail'),
     path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
+   
+
+    # path(r'orders/', views.ordersList.as_view(), name='orders-list'),
+    # path(r'order/<int:pk>/', views.ordersDetail.as_view(), name='order-detail'),
+    # path(r'order/<int:pk>/put/', views.put_detail, name='order-put'),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
 
     path('', views.GetAllCargo, name="all_cargo"),
     path('item/<int:id>/', views.GetCurrentCargo, name='item_url'), # конкретный груз и его описание
