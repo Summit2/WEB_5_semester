@@ -29,11 +29,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # path('', include(router.urls)),
-    path(r'stocks/', views.get_list, name='stocks-list'),
-    path(r'stocks/post/', views.post_list, name='stocks-post'),
-    path(r'stocks/<int:pk>/', views.get_detail, name='stocks-detail'),
-    path(r'stocks/<int:pk>/put/', views.put_detail, name='stocks-put'),
-    path(r'stocks/<int:pk>/delete/', views.delete_detail, name='stocks-delete'),
+    path(r'cargo/', views.get_list, name='cargo-list'),
+    path(r'cargo/post/', views.post_list, name='cargo-post'),
+    path(r'cargo/<int:pk>/', views.get_detail, name='cargo-detail'),
+    path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
+    path(r'cargo/<int:pk>/delete/', views.delete_detail, name='cargo-delete'),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
     path('', views.GetAllCargo, name="all_cargo"),
