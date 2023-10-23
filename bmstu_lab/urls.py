@@ -39,9 +39,9 @@ urlpatterns = [
     path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
    
 
-    # path(r'orders/', views.ordersList.as_view(), name='orders-list'),
-    # path(r'order/<int:pk>/', views.ordersDetail.as_view(), name='order-detail'),
-    # path(r'order/<int:pk>/put/', views.put_detail, name='order-put'),
+    path(r'orders/', views.OrdersList.as_view(), name='orders-list'),
+    path(r'order/<int:pk>/', views.OrderDetail.as_view(), name='order-detail'),
+
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
 

@@ -11,8 +11,9 @@ import psycopg2
 # ORMs
 from bmstu_lab_m.models import Cargo
 from bmstu_lab_m.models import CargoOrder
+from bmstu_lab_m.models import DeliveryOrders
 #from bmstu_lab_m.models import DeliveryOrders
-#from bmstu_lab_m.models import Users
+from bmstu_lab_m.models import Users
 
 # все для Rest Api
 from rest_framework.response import Response
@@ -23,7 +24,8 @@ from rest_framework.views import APIView
 
 # serializers
 from bmstu_lab_m.serializers import CargoSerializer
-
+from bmstu_lab_m.serializers import OrdersSerializer
+# from bmstu_lab_m.serializers import Cargo_Order_Serializer
 
 '''Заявки на доставку грузов на Марс на Starship. 
 Услуги - товары, доставляемыe на Марс на Starship, 
@@ -124,7 +126,8 @@ class CargoList(APIView):
 class CargoDetail(APIView):
     model_class = Cargo
     serializer_class = CargoSerializer
-
+    users_class = Users
+    
     def get(self, request, pk, format=None):
         """
         Возвращает информацию грузe
@@ -133,6 +136,31 @@ class CargoDetail(APIView):
         serializer = self.serializer_class(cargo)
         return Response(serializer.data)
     
+    def post(self, request, pk, format=None):
+        '''
+        Добавление определенного груза в заявку 
+
+        SELECT Delivery_orders.id_order, Cargo.id_cargo , cargo.title
+        FROM Delivery_orders
+        INNER JOIN Cargo_Order ON Delivery_orders.id_order = Cargo_order.id_order
+        INNER JOIN Cargo ON Cargo_order.id_cargo = Cargo.id_cargo;
+
+        '''
+        id_user = 2 #хардкод, потом надо будет убрать
+        id_moderator = 1
+
+        many_to_many = CargoOrder 
+        # many_to_many_serializer = Cargo_Order_Serializer
+        cargo_to_add = get_object_or_404(self.model_class, pk=pk)
+
+        print(cargo_to_add)
+
+        
+        return Response(status=status.HTTP_201_CREATED)
+        
+
+
+
     def put(self, request, pk, format=None):
         """
         Обновляет информацию о грузe(для модератора)
@@ -165,3 +193,65 @@ def put_detail(request, pk, format=None):
         serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class OrdersList(APIView):
+    model_class = DeliveryOrders
+    serializer_class = OrdersSerializer
+
+   
+
+    def get(self, request, format=None):
+        """
+        Возвращает список акций
+        """
+        all_orders = self.model_class.objects.all()
+        serializer = self.serializer_class(all_orders, many=True)
+        return Response(serializer.data)
+    
+
+
+class OrderDetail(APIView):
+    model_class = DeliveryOrders
+    serializer_class = OrdersSerializer
+
+    def get(self, request, pk, format=None):
+        """
+        Возвращает информацию об акции
+        """
+        order = get_object_or_404(self.model_class, pk=pk)
+        serializer = self.serializer_class(order)
+        return Response(serializer.data)
+    
+    def put(self, request, pk, format=None):
+        """
+        Обновляет информацию об акции (для модератора)
+        """
+        stock = get_object_or_404(self.model_class, pk=pk)
+        serializer = self.serializer_class(stock, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        """
+        Меняет статус заказа на удалён
+        """
+        order = get_object_or_404(self.model_class, pk=pk)
+        order.order_status = "удалён"
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+# @api_view(['Put'])
+# def put_detail(request, pk, format=None):
+#     """
+#     Обновляет информацию об акции (для пользователя)
+#     """
+#     stock = get_object_or_404(Stock, pk=pk)
+#     serializer = StockSerializer(stock, data=request.data, partial=True)
+#     if serializer.is_valid():
+#         serializer.save()
+#         return Response(serializer.data)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
