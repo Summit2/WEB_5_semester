@@ -299,6 +299,7 @@ class OrderDetail(APIView):
         """
         order = get_object_or_404(self.model_class, pk=pk)
         order.order_status = "удалён"
+        order.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 # @api_view(['Put'])
