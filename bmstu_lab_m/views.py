@@ -151,7 +151,7 @@ class CargoDetail(APIView):
         FROM Delivery_orders
         INNER JOIN Cargo_Order ON Delivery_orders.id_order = Cargo_order.id_order
         INNER JOIN Cargo ON Cargo_order.id_cargo = Cargo.id_cargo;
-        надо добавить 
+        
         '''
         ind_User = 2 #хардкод, потом надо будет убрать
         ind_Moderator = 1
@@ -177,20 +177,12 @@ class CargoDetail(APIView):
         try:
             many_to_many = CargoOrder.objects.create(id_cargo=cargo_instance, 
                                                         id_order=order_instance,
-                                                        amount = 1)
+                                                        amount = 1) #amount пока 1, потом можно будет поменять
             many_to_many.save()
         except:
+            # значит в таблице многие ко многим уже существует запись
             pass
-        
-        
-        # cargo_to_add = get_object_or_404(self.model_class, pk=pk)
-        
-        # many_to_many.id_cargo = cargo_to_add.id_cargo
-        
-        #  many_to_many.id_order = 
-        # moderator = get_object_or_404(Users.all().filter(is_moderator = True, id_moderator = id_moderator ))
 
-        
         return Response(status=status.HTTP_201_CREATED)
         
 
@@ -201,12 +193,20 @@ class CargoDetail(APIView):
         """
         Обновляет информацию о грузe(для модератора)
         """
-        cargo = get_object_or_404(self.model_class, pk=pk)
-        serializer = self.serializer_class(cargo, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        ind_Moderator = 1 # хардкод
+        if Users.objects.all().filter(id_user = ind_Moderator)[0].is_moderator == True:
+        
+
+            cargo = get_object_or_404(self.model_class, pk=pk)
+            serializer = self.serializer_class(cargo, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
 
     def delete(self, request, pk, format=None):
         """
@@ -252,21 +252,34 @@ class OrdersList(APIView):
 class OrderDetail(APIView):
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
-
+    
     def get(self, request, pk, format=None):
         """
         Возвращает информацию об акции
         """
         order = get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(order)
-        return Response(serializer.data)
+
+        responce = serializer.data
+
+        cargo_in_order_ids = CargoOrder.objects.filter(id_order = pk)
+        list_of_cargo_ids = [i.id_cargo.id_cargo for i in cargo_in_order_ids]
+        print(list_of_cargo_ids)
+        cargo_in_order = Cargo.objects.filter(id_cargo__in = list_of_cargo_ids)
+
+        print(cargo_in_order)
+
+        cargo_serializer = CargoSerializer(cargo_in_order, many=True)
+
+        responce['Cargo_in_Order'] = cargo_serializer.data
+        return Response(responce)
     
     def put(self, request, pk, format=None):
         """
         Обновляет информацию об акции (для модератора)
         """
-        stock = get_object_or_404(self.model_class, pk=pk)
-        serializer = self.serializer_class(stock, data=request.data, partial=True)
+        order = get_object_or_404(self.model_class, pk=pk)
+        serializer = self.serializer_class(order, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -275,6 +288,7 @@ class OrderDetail(APIView):
     def delete(self, request, pk, format=None):
         """
         Меняет статус заказа на удалён
+        Может делать только создатель
         """
         order = get_object_or_404(self.model_class, pk=pk)
         order.order_status = "удалён"
