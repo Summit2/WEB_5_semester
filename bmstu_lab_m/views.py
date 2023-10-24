@@ -305,6 +305,14 @@ class OrderDetail(APIView):
         Статус отменён - если заявка была в статусе - введён
         Статус завершен - если заявка была в статусе - в работе
         """
+        idModerator = 1
+
+
+        moderators = Users.objects.all().filter(id_user = idModerator, is_moderator = True)
+        # print(moderators)
+        if (not moderators.exists()) :
+             return Response(status=status.HTTP_403_FORBIDDEN)
+
         order = get_object_or_404(self.model_class, pk=pk)
         if order.order_status == 'введён':
             order.order_status = 'отменён'

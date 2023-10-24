@@ -48,10 +48,10 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
 
-    path('', views.GetAllCargo, name="all_cargo"),
-    path('item/<int:id>/', views.GetCurrentCargo, name='item_url'), # конкретный груз и его описание
+    # path('', views.GetAllCargo, name="all_cargo"),
+    # path('item/<int:id>/', views.GetCurrentCargo, name='item_url'), # конкретный груз и его описание
 
-    path('deleteCargo/', views.DeleteCurrentCargo, name = 'del_cur_cargo')
+    # path('deleteCargo/', views.DeleteCurrentCargo, name = 'del_cur_cargo')
 ]
 
 from django.conf import settings
