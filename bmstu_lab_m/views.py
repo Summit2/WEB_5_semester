@@ -146,6 +146,7 @@ class CargoDetail(APIView):
     def post(self, request, pk, format=None):
         '''
         Добавление определенного груза в заявку 
+        и формирование заявки, если до этого ее не было
 
         SELECT Delivery_orders.id_order, Cargo.id_cargo , cargo.title
         FROM Delivery_orders
@@ -160,7 +161,12 @@ class CargoDetail(APIView):
         moderator_instance = get_object_or_404(Users, pk=ind_Moderator)
         cargo_instance = get_object_or_404(Cargo, pk=pk)
         
-        order = DeliveryOrders.objects.all().filter(id_user=user_instance, id_moderator=moderator_instance)
+
+        #здесь можно добавить еще проверку на order_status
+        #т.е. добавлять новый заказ, если статус старого завершен, отменен, удален
+        order = DeliveryOrders.objects.all().filter(id_user=user_instance,
+                                                    id_moderator=moderator_instance
+                                                    )
         
        
         if not order.exists():
@@ -260,17 +266,18 @@ class OrderDetail(APIView):
         order = get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(order)
 
-        responce = serializer.data
+        responce = serializer.data  #берем данные нашей заявки
 
+
+        # здесь через таблицу М-М берем те грузы, которые есть в нашей заявке
         cargo_in_order_ids = CargoOrder.objects.filter(id_order = pk)
         list_of_cargo_ids = [i.id_cargo.id_cargo for i in cargo_in_order_ids]
-        print(list_of_cargo_ids)
         cargo_in_order = Cargo.objects.filter(id_cargo__in = list_of_cargo_ids)
 
-        print(cargo_in_order)
 
         cargo_serializer = CargoSerializer(cargo_in_order, many=True)
 
+        # добавляем новое поле - это и будут наши товары в заявке
         responce['Cargo_in_Order'] = cargo_serializer.data
         return Response(responce)
     
