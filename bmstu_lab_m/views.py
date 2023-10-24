@@ -4,6 +4,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
+from django.db.models import Q
+
 
 # PostgreSQL
 import psycopg2
@@ -27,6 +29,7 @@ from bmstu_lab_m.serializers import CargoSerializer
 from bmstu_lab_m.serializers import OrdersSerializer
 # from bmstu_lab_m.serializers import Cargo_Order_Serializer
 
+import datetime
 '''Заявки на доставку грузов на Марс на Starship. 
 Услуги - товары, доставляемыe на Марс на Starship, 
    заявки - заявки на конкретный объем товаров
@@ -114,7 +117,7 @@ class CargoList(APIView):
     
     def post(self, request, format=None):
         """
-        Добавляет новый груз
+        Создает новый груз
         """
         serializer = self.serializer_class(data=request.data)
         
@@ -159,27 +162,37 @@ class CargoDetail(APIView):
 
         user_instance = get_object_or_404(Users, pk=ind_User)
         moderator_instance = get_object_or_404(Users, pk=ind_Moderator)
-        cargo_instance = get_object_or_404(Cargo, pk=pk)
-        
+
+        #добавить можно только те заявки, у которых статус - "не удален"
+        cargo_instance = get_object_or_404(Cargo.objects.filter(is_deleted = False), pk=pk) 
 
         #здесь можно добавить еще проверку на order_status
         #т.е. добавлять новый заказ, если статус старого завершен, отменен, удален
-        order = DeliveryOrders.objects.all().filter(id_user=user_instance,
-                                                    id_moderator=moderator_instance
-                                                    )
-        
-       
+        order = DeliveryOrders.objects.filter(
+        Q(order_status='введён') | Q(order_status='в работе'),
+        id_user=user_instance,
+        id_moderator=moderator_instance
+        )
+
         if not order.exists():
             #здесь добавляем заказ, если его до этого не было
             # и присваиваем ему статус 'введён'
             order_to_add = DeliveryOrders.objects.create(id_user = user_instance,
                                                           id_moderator=moderator_instance, 
-                                                          order_status = 'введён' )
+                                                          order_status = 'введён',
+                                                            date_create = datetime.datetime.now() )
             order_to_add.save()
             order = order_to_add
 
-        order_instance = get_object_or_404(DeliveryOrders, pk = order[0].id_order)
-            # и добавляем в таблицу многие ко многим
+        # и добавляем в таблицу многие ко многим
+        try: #!!!
+            print('1 случай:', order)
+            order_instance = get_object_or_404(DeliveryOrders, pk = order.id_order)
+        except:
+            print('2 случай:', order)
+            order_instance = get_object_or_404(DeliveryOrders, pk = order[0].id_order)
+        
+        
         try:
             many_to_many = CargoOrder.objects.create(id_cargo=cargo_instance, 
                                                         id_order=order_instance,
@@ -247,7 +260,7 @@ class OrdersList(APIView):
 
     def get(self, request, format=None):
         """
-        Возвращает список акций
+        Возвращает список заказов
         """
         all_orders = self.model_class.objects.all()
         serializer = self.serializer_class(all_orders, many=True)
@@ -256,12 +269,15 @@ class OrdersList(APIView):
 
 
 class OrderDetail(APIView):
+    '''
+    Обработка конкретных заявок
+    '''
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
     
     def get(self, request, pk, format=None):
         """
-        Возвращает информацию об акции
+        Возвращает информацию о заявке (заказе)
         """
         order = get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(order)
@@ -278,19 +294,39 @@ class OrderDetail(APIView):
         cargo_serializer = CargoSerializer(cargo_in_order, many=True)
 
         # добавляем новое поле - это и будут наши товары в заявке
-        responce['Cargo_in_Order'] = cargo_serializer.data
+        responce['cargo_in_order'] = cargo_serializer.data
         return Response(responce)
     
     def put(self, request, pk, format=None):
         """
-        Обновляет информацию об акции (для модератора)
+        Обновляет информацию об заказе (для модератора)
+        модератор может назначить статусы - отменён / завершен
+        
+        Статус отменён - если заявка была в статусе - введён
+        Статус завершен - если заявка была в статусе - в работе
         """
         order = get_object_or_404(self.model_class, pk=pk)
-        serializer = self.serializer_class(order, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if order.order_status == 'введён':
+            order.order_status = 'отменён'
+            order.date_accept = datetime.datetime.now()
+            order.date_finish = datetime.datetime.now()
+            order.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        elif order.order_status == 'в работе':
+            order.order_status = 'завершен'
+            order.date_accept = datetime.datetime.now()
+            order.date_finish = datetime.datetime.now()
+            order.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        # serializer = self.serializer_class(order, data=request.data, partial=True)
+        # if serializer.is_valid():
+        #     serializer.save()
+        #     return Response(serializer.data)
+
+        
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request, pk, format=None):
         """
@@ -302,14 +338,58 @@ class OrderDetail(APIView):
         order.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
-# @api_view(['Put'])
-# def put_detail(request, pk, format=None):
-#     """
-#     Обновляет информацию об акции (для пользователя)
-#     """
-#     stock = get_object_or_404(Stock, pk=pk)
-#     serializer = StockSerializer(stock, data=request.data, partial=True)
-#     if serializer.is_valid():
-#         serializer.save()
-#         return Response(serializer.data)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class Cargo_Order_methods(APIView):
+
+    def delete(self, request, pk, format=None):
+        '''
+        удаление услуги из заявки для конкретного пользователя
+        если услуга была последняя, то и заявка тоже удаляется
+
+        запрос для получения всех заказов со всеми грузами в них:
+            select * from delivery_orders as dor 
+            inner join cargo_order as ca on ca.id_order = dor.id_order;
+        '''
+        idUser = 2
+        idModerator = 1 
+        # del_object = get_object_or_404(self.method_class, pk=pk)
+        active_order = DeliveryOrders.objects.filter( Q(order_status = 'введён') | Q(order_status = 'в работе'), id_user = idUser)
+        
+        if active_order.exists():
+            
+            del_result = CargoOrder.objects.filter(id_order = active_order[0].id_order, id_cargo = pk).delete()
+            #del_res - tuple (number_of_deleted, dict of deleted)
+            if del_result[0] == 0:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    def put(self, request, pk, format=None):
+        '''
+         изменение количества в м-м
+         pk - номер груза, количество которого надо изменить
+        '''
+
+        idUser = 2
+        idModerator = 1 
+        new_amount = request.data['amount']
+        active_order = DeliveryOrders.objects.filter( Q(order_status = 'введён') | Q(order_status = 'в работе'), id_user = idUser)
+        # print('PUT update_order (updating amount). Current order: ', active_order)
+        if active_order.exists():
+
+            CargoOrder.objects.filter(id_order = active_order[0].id_order,
+                                       id_cargo = pk,
+                                       ).update(amount = new_amount)
+
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
