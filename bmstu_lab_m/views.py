@@ -32,6 +32,13 @@ from bmstu_lab_m.serializers import OrdersSerializer
    заявки - заявки на конкретный объем товаров
 '''
 
+conn = psycopg2.connect(
+    dbname="starship_delivery",
+    user="postgres",
+    password="1111",
+    host="localhost",
+    port="5432"
+)
 
 
 def GetAllCargo(request):
@@ -144,22 +151,51 @@ class CargoDetail(APIView):
         FROM Delivery_orders
         INNER JOIN Cargo_Order ON Delivery_orders.id_order = Cargo_order.id_order
         INNER JOIN Cargo ON Cargo_order.id_cargo = Cargo.id_cargo;
-
+        надо добавить 
         '''
-        id_user = 2 #хардкод, потом надо будет убрать
-        id_moderator = 1
+        ind_User = 2 #хардкод, потом надо будет убрать
+        ind_Moderator = 1
 
-        many_to_many = CargoOrder 
-        # many_to_many_serializer = Cargo_Order_Serializer
-        cargo_to_add = get_object_or_404(self.model_class, pk=pk)
+        user_instance = get_object_or_404(Users, pk=ind_User)
+        moderator_instance = get_object_or_404(Users, pk=ind_Moderator)
+        cargo_instance = get_object_or_404(Cargo, pk=pk)
+        
+        order = DeliveryOrders.objects.all().filter(id_user=user_instance, id_moderator=moderator_instance)
+        
+       
+        if not order.exists():
+            #здесь добавляем заказ, если его до этого не было
+            # и присваиваем ему статус 'введён'
+            order_to_add = DeliveryOrders.objects.create(id_user = user_instance,
+                                                          id_moderator=moderator_instance, 
+                                                          order_status = 'введён' )
+            order_to_add.save()
+            order = order_to_add
 
-        print(cargo_to_add)
+        order_instance = get_object_or_404(DeliveryOrders, pk = order[0].id_order)
+            # и добавляем в таблицу многие ко многим
+        try:
+            many_to_many = CargoOrder.objects.create(id_cargo=cargo_instance, 
+                                                        id_order=order_instance,
+                                                        amount = 1)
+            many_to_many.save()
+        except:
+            pass
+        
+        
+        # cargo_to_add = get_object_or_404(self.model_class, pk=pk)
+        
+        # many_to_many.id_cargo = cargo_to_add.id_cargo
+        
+        #  many_to_many.id_order = 
+        # moderator = get_object_or_404(Users.all().filter(is_moderator = True, id_moderator = id_moderator ))
 
         
         return Response(status=status.HTTP_201_CREATED)
         
 
-
+    
+        
 
     def put(self, request, pk, format=None):
         """

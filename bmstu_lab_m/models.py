@@ -95,14 +95,22 @@ class Cargo(models.Model):
             self.image_binary = binary_data
         self.save()
 
-        
+    
 class CargoOrder(models.Model):
-    id_cargo = models.ForeignKey(Cargo, models.DO_NOTHING, db_column='id_cargo', blank=True, null=True)
-    id_order = models.ForeignKey('DeliveryOrders', models.DO_NOTHING, db_column='id_order', blank=True, null=True)
+    id_cargo = models.ForeignKey(Cargo, models.DO_NOTHING, db_column='id_cargo')
+    id_order = models.OneToOneField('DeliveryOrders', models.DO_NOTHING, db_column='id_order', primary_key=True)  # The composite primary key (id_order, id_cargo) found, that is not supported. The first column is selected.
+    amount = models.IntegerField(blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = 'cargo_order'
+        unique_together = (('id_order', 'id_cargo'),)     
+#     id_cargo = models.ForeignKey(Cargo, models.DO_NOTHING, db_column='id_cargo', blank=True, null=True)
+#     id_order = models.ForeignKey('DeliveryOrders', models.DO_NOTHING, db_column='id_order', blank=True, null=True)
+
+#     class Meta:
+#         managed = False
+#         db_table = 'cargo_order'
 
 
 class DeliveryOrders(models.Model):
