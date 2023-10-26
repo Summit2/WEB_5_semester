@@ -110,10 +110,31 @@ class CargoList(APIView):
     def get(self, request, format=None):
         """
         Возвращает список грузов
+        добавляет ид черновика заявки текущего пользователя
         """
+
+        idUser = 2
+
+        
+        data = DeliveryOrders.objects.filter(id_user = idUser, order_status = 'введён')
+        
+        try:
+            id_order_draft = data[0].id
+        except IndexError:
+            id_order_draft = None
+
+        data ={'id_order_draft' : id_order_draft}
+
+    
         cargos = self.model_class.objects.all().order_by('weight')
         serializer = self.serializer_class(cargos, many=True)
-        return Response(serializer.data)
+
+        serializer_data = serializer.data
+
+        # Append additional data to the serialized data
+        serializer_data.append(data)
+
+        return Response(serializer_data)
     
     def post(self, request, format=None):
         """
@@ -140,7 +161,7 @@ class CargoDetail(APIView):
     
     def get(self, request, pk, format=None):
         """
-        Возвращает информацию грузe
+        Возвращает информацию о грузe
         """
         cargo = get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(cargo)
@@ -240,14 +261,36 @@ class CargoDetail(APIView):
 @api_view(['Put'])
 def put_detail(request, pk, format=None):
     """
-    Обновляет информацию о грузe (для пользователя)
+    Обновляет картинку в услуге
+
+    например на default path:
+    {
+    "new_image_path" : ""
+    }
     """
-    cargo = get_object_or_404(Cargo, pk=pk)
-    serializer = CargoSerializer(cargo, data=request.data, partial=True)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # cargo = get_object_or_404(Cargo, pk=pk)
+    # serializer = CargoSerializer(cargo, data=request.data, partial=True)
+    # if serializer.is_valid():
+    #     serializer.save()
+    #     return Response(serializer.data)
+    # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    cargo_to_update = get_object_or_404(Cargo, pk=pk)
+    
+    def new_method(bi_image_path):
+        with open(bi_image_path, 'rb') as file:
+            binary_data = file.read()
+        return binary_data
+    # serializer = CargoSerializer(cargo_to_update,data=request.data)
+        
+    
+    bi_image_path = request.data.get('new_image_path')
+    binary_data = new_method(bi_image_path)
+    print(bi_image_path )
+    cargo_to_update.image_binary=binary_data
+    cargo_to_update.save()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+    # return Response(status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
@@ -256,15 +299,45 @@ class OrdersList(APIView):
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
 
-   
-
     def get(self, request, format=None):
-        """
-        Возвращает список заказов
-        """
-        all_orders = self.model_class.objects.all()
+        idUser = 2
+        all_orders = self.model_class.objects.all().order_by('order_status', 'date_create')
         serializer = self.serializer_class(all_orders, many=True)
-        return Response(serializer.data)
+        
+        
+        serialized_data = serializer.data  # this is a list of dictionaries
+        
+        
+        return Response(serialized_data)
+
+
+    # def get(self, request, format=None):
+    #     """
+    #     Возвращает список заказов
+    #     """
+
+    #     idUser = 2
+
+    #     all_orders = self.model_class.objects.all().order_by('order_status', 'date_create')
+
+
+    #     #также надо добавить id черновика для этого пользователя
+    #     serializer = self.serializer_class(all_orders, many=True)
+
+    #     # data = {
+    #     #     'id_order_draft': self.model_class.objects.filter(id_user=idUser, order_status='введён')
+    #     # }
+    #     # print(type(serializer))
+    #     data = self.model_class.objects.filter(id_user =idUser, order_status = 'введён')
+    #     # print('data {}'.format(data))
+    #     # for i in data:
+    #     #     print(i)
+    #     try:
+    #         serializer['id_order_draft'] = data[0]
+    #     except:
+    #         # data = {'id_order_draft' : None}
+    #         serializer['id_order_draft'] = '-1'
+    #     return Response(serializer.data)
     
 
 
