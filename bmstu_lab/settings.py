@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'bmstu_lab_m',
     'rest_framework',
+    'drf_yasg',
     # 'starship_delivery'
     
     # 'auth_group',

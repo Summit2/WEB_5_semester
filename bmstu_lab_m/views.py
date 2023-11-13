@@ -100,22 +100,24 @@ def DeleteCurrentCargo(request):
         redirect_url = reverse('all_cargo') 
         return HttpResponseRedirect(redirect_url)
     
-
+from django.http import JsonResponse
 
 
 class CargoList(APIView):
     model_class = Cargo
     serializer_class = CargoSerializer
     
+    from django.http import JsonResponse
+
+    
     def get(self, request, format=None):
         """
-        Возвращает список грузов
-        добавляет ид черновика заявки текущего пользователя
+        Returns list of orders
+        Adds id of the current user's draft order
         """
 
         idUser = 2
 
-        
         data = DeliveryOrders.objects.filter(id_user = idUser, order_status = 'введён')
         
         try:
@@ -123,19 +125,19 @@ class CargoList(APIView):
         except IndexError:
             id_order_draft = None
 
-        data ={'id_order_draft' : id_order_draft}
-
-    
         cargos = self.model_class.objects.all().order_by('weight')
         serializer = self.serializer_class(cargos, many=True)
 
         serializer_data = serializer.data
 
-        # Append additional data to the serialized data
-        serializer_data.append(data)
+        # Return a dictionary containing the list of orders and the id_order_draft
+        response_data = {
+            'data': serializer_data,
+            'id_order_draft': id_order_draft
+        }
 
-        return Response(serializer_data)
-    
+        return Response(response_data)
+
     def post(self, request, format=None):
         """
         Создает новый груз
@@ -285,7 +287,7 @@ def put_detail(request, pk, format=None):
     
     bi_image_path = request.data.get('new_image_path')
     binary_data = new_method(bi_image_path)
-    print(bi_image_path )
+    print(bi_image_path)
     cargo_to_update.image_binary=binary_data
     cargo_to_update.save()
     return Response(status=status.HTTP_204_NO_CONTENT)
@@ -294,6 +296,7 @@ def put_detail(request, pk, format=None):
 
 
 
+from django.utils.dateparse import parse_date
 
 class OrdersList(APIView):
     model_class = DeliveryOrders
@@ -301,14 +304,52 @@ class OrdersList(APIView):
 
     def get(self, request, format=None):
         idUser = 2
+
         all_orders = self.model_class.objects.all().order_by('order_status', 'date_create')
+        # all_orders = self.model_class.objects.select_related('id_moderator').only('email').all().order_by('order_status', 'date_create')
+
         serializer = self.serializer_class(all_orders, many=True)
-        
-        
         serialized_data = serializer.data  # this is a list of dictionaries
         
         
         return Response(serialized_data)
+
+    def put(self, request, format=None):
+        """
+        Метод для фильтрации списка заявок
+        """
+
+        # Retrieve filter parameters from request data
+        start_date_str = request.data.get('start_date')
+        end_date_str = request.data.get('end_date')
+        status = request.data.get('status')
+
+        # Convert date strings to datetime.date objects
+        start_date = parse_date(start_date_str) if start_date_str else None
+        end_date = parse_date(end_date_str) if end_date_str else None
+
+        # Get all orders
+        all_orders = self.model_class.objects.all()
+
+        # Filter orders by date if start_date and end_date are provided
+        if start_date and end_date:
+            all_orders = all_orders.filter(date_create__range=(start_date, end_date))
+
+        # Filter orders by status if status is provided
+        if status:
+            all_orders = all_orders.filter(order_status=status)
+
+        # Order by status and date
+        all_orders = all_orders.order_by('order_status', 'date_create')
+
+        # Serialize and return the filtered orders
+        serializer = self.serializer_class(all_orders, many=True)
+        serialized_data = serializer.data  # this is a list of dictionaries
+
+        return Response(serialized_data)
+
+
+
 
 
     # def get(self, request, format=None):

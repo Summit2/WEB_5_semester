@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 class CargoSerializer(serializers.ModelSerializer):
     class Meta:
+        
         # Модель, которую мы сериализуем
         model = Cargo
         # Поля, которые мы сериализуем
@@ -13,6 +14,7 @@ class CargoSerializer(serializers.ModelSerializer):
    
 class OrdersSerializer(serializers.ModelSerializer):
     class Meta:
+        email = serializers.CharField(source='Users.email', read_only=True)
         # Модель, которую мы сериализуем
         model = DeliveryOrders
         # Поля, которые мы сериализуем
@@ -26,3 +28,15 @@ class Cargo_Order_Serializer(serializers.ModelSerializer):
         model = CargoOrder
         # Поля, которые мы сериализуем
         fields = [] # 
+
+
+
+#auth
+from .models import CustomUser
+
+class UserSerializer(serializers.ModelSerializer):
+    is_moderator = serializers.BooleanField(default=False, required=False)
+   
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'password', 'is_moderator']

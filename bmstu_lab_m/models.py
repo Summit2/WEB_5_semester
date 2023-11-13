@@ -1,11 +1,7 @@
-# This is an auto-generated Django model module.
-# You'll have to do the following manually to clean this up:
-#   * Rearrange models' order
-#   * Make sure each model has one field with primary_key=True
-#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
-#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
-# Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
+#for auth
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+
 
 
 class AuthGroup(models.Model):
@@ -183,3 +179,31 @@ class Users(models.Model):
     class Meta:
         managed = False
         db_table = 'users'
+
+
+#auth
+from django.contrib.auth.models import Group, Permission
+
+
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(("email адрес"), unique=True)
+    password = models.CharField(max_length=50, verbose_name="Пароль")    
+    is_moderator = models.BooleanField(default=False, verbose_name="Является ли пользователь менеджером?")
+    groups = models.ManyToManyField(
+        Group,
+        verbose_name='groups',
+        blank=True,
+        help_text='The groups this user belongs to. A user will get all permissions '
+                  'granted to each of their groups.',
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss",
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        verbose_name='user permissions',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss",
+    )
+
