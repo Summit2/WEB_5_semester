@@ -14,8 +14,8 @@ import psycopg2
 from bmstu_lab_m.models import Cargo
 from bmstu_lab_m.models import CargoOrder
 from bmstu_lab_m.models import DeliveryOrders
-#from bmstu_lab_m.models import DeliveryOrders
 from bmstu_lab_m.models import Users
+from bmstu_lab_m.models import CustomUser
 
 # все для Rest Api
 from rest_framework.response import Response
@@ -27,7 +27,17 @@ from rest_framework.views import APIView
 # serializers
 from bmstu_lab_m.serializers import CargoSerializer
 from bmstu_lab_m.serializers import OrdersSerializer
+from bmstu_lab_m.serializers import UserSerializer
 # from bmstu_lab_m.serializers import Cargo_Order_Serializer
+
+#auth
+from django.contrib.auth import authenticate, login, logout
+from django.http import HttpResponse
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes, authentication_classes
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
+
 
 import datetime
 '''Заявки на доставку грузов на Марс на Starship. 
@@ -99,11 +109,32 @@ def DeleteCurrentCargo(request):
 
         redirect_url = reverse('all_cargo') 
         return HttpResponseRedirect(redirect_url)
-    
+
+
+@permission_classes([AllowAny])
+@authentication_classes([])
+def login_view(request):
+    email = request.POST["email"] # допустим передали username и password
+    password = request.POST["password"]
+    user = authenticate(request, email=email, password=password)
+    if user is not None:
+        login(request, user)
+        return HttpResponse("{'status': 'ok'}")
+    else:
+        return HttpResponse("{'status': 'error', 'error': 'login failed'}")
+
+def logout_view(request):
+    logout(request._request)
+    return Response({'status': 'Success'})
+
+
 from django.http import JsonResponse
 
 
 class CargoList(APIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+
+    
     model_class = Cargo
     serializer_class = CargoSerializer
     
@@ -157,6 +188,9 @@ class CargoList(APIView):
         return binary_data
 
 class CargoDetail(APIView):
+
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+
     model_class = Cargo
     serializer_class = CargoSerializer
     users_class = Users
@@ -299,6 +333,8 @@ def put_detail(request, pk, format=None):
 from django.utils.dateparse import parse_date
 
 class OrdersList(APIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
 
@@ -386,6 +422,8 @@ class OrderDetail(APIView):
     '''
     Обработка конкретных заявок
     '''
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
     
@@ -465,7 +503,7 @@ class OrderDetail(APIView):
 
 
 class Cargo_Order_methods(APIView):
-
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
     def delete(self, request, pk, format=None):
         '''
         удаление услуги из заявки для конкретного пользователя
@@ -515,3 +553,35 @@ class Cargo_Order_methods(APIView):
 
 
         return Response(status=status.HTTP_404_NOT_FOUND)
+    
+
+
+from rest_framework import viewsets
+class UserViewSet(viewsets.ModelViewSet):
+    """Класс, описывающий методы работы с пользователями
+    Осуществляет связь с таблицей пользователей в базе данных
+    """
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    model_class = CustomUser
+
+    def create(self, request):
+        """
+        Функция регистрации новых пользователей
+        Если пользователя c указанным в request email ещё нет, в БД будет добавлен новый пользователь.
+        """
+        if self.model_class.objects.filter(email=request.data['email']).exists():
+            return Response({'status': 'Exist'}, status=400)
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            print(serializer.data)
+            self.model_class.objects.create_user(email=serializer.data['email'],
+                                     password=serializer.data['password'],
+                                     is_moderator=serializer.data['is_staff'])
+            return Response({'status': 'Success'}, status=200)
+        return Response({'status': 'Error', 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
