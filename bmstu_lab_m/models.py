@@ -182,28 +182,26 @@ class Users(models.Model):
 
 
 #auth
-from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.models import Group, Permission, UserManager
+
+class NewUserManager(UserManager):
+    def create_user(self,email,password=None, **extra_fields):
+        if not email:
+            raise ValueError('User must have an email address')
+        
+        email = self.normalize_email(email) 
+        user = self.model(email=email, **extra_fields) 
+        user.set_password(password)
+        user.save(using=self.db)
+        return user
+    
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(("email адрес"), unique=True)
-    password = models.CharField(max_length=50, verbose_name="Пароль")    
-    is_moderator = models.BooleanField(default=False, verbose_name="Является ли пользователь менеджером?")
-    groups = models.ManyToManyField(
-        Group,
-        verbose_name='groups',
-        blank=True,
-        help_text='The groups this user belongs to. A user will get all permissions '
-                  'granted to each of their groups.',
-        related_name="%(app_label)s_%(class)s_related",
-        related_query_name="%(app_label)s_%(class)ss",
-    )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        verbose_name='user permissions',
-        blank=True,
-        help_text='Specific permissions for this user.',
-        related_name="%(app_label)s_%(class)s_related",
-        related_query_name="%(app_label)s_%(class)ss",
-    )
+    email = models.EmailField(("email адрес"), unique=True, max_length=254)
+    password = models.CharField(max_length=120, verbose_name="Пароль")    
+    is_moderator = models.BooleanField(default=False, verbose_name="Является ли пользователь модератоом?")
+   
+    USERNAME_FIELD = 'email'
 
+    objects =  NewUserManager()

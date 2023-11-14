@@ -67,6 +67,8 @@ REST_FRAMEWORK = {
     ]
 }
 
+AUTH_USER_MODEL = "bmstu_lab_m.CustomUser"
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

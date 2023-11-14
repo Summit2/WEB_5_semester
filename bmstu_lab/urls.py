@@ -5,7 +5,7 @@ from rest_framework import routers
 
 from bmstu_lab_m import views
 
-router = routers.DefaultRouter()
+
 
 
 #for auth
@@ -13,10 +13,12 @@ from rest_framework import permissions
 from django.urls import path, include
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from rest_framework import routers
 
 
+router = routers.DefaultRouter()
 router.register(r'user', views.UserViewSet, basename='user')
+
+
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -33,18 +35,22 @@ schema_view = get_schema_view(
 
 
 
-''' 
-на сайте мы создаем свои уникальные идентификаsторы - urls
-'''
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    
+    
 
-    # path('', include(router.urls)),
+
+    path('admin/', admin.site.urls),
+   
+    
     # path(r'cargo/', views.get_list, name='cargo-list'),
     # path(r'cargo/post/', views.post_list, name='cargo-post'),
     # path(r'cargo/<int:pk>/', views.get_detail, name='cargo-detail'),
     # path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
     # path(r'cargo/<int:pk>/delete/', views.delete_detail, name='cargo-delete'),
+
+
+    path('', include(router.urls)),
     path(r'cargo/', views.CargoList.as_view(), name='cargo-list'),
     path(r'cargo/<int:pk>/', views.CargoDetail.as_view(), name='cargo-detail'),
     path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),

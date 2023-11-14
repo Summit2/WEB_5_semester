@@ -36,7 +36,7 @@ from django.http import HttpResponse
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,IsAuthenticatedOrReadOnly
 
 
 import datetime
@@ -52,63 +52,59 @@ conn = psycopg2.connect(
     host="localhost",
     port="5432"
 )
+from rest_framework import viewsets
+from rest_framework import permissions
+
+class IsModerator(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_moderator)
 
 
-def GetAllCargo(request):
+class UserViewSet(viewsets.ModelViewSet):
+    """Класс, описывающий методы работы с пользователями
+    Осуществляет связь с таблицей пользователей в базе данных
+    """
+    # authentication_classes = [SessionAuthentication, BasicAuthentication]
+
+    # queryset = CustomUser.objects.all()
+    # serializer_class = UserSerializer
+    model_class = CustomUser
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.action in ['create']:
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsModerator]
+        return [permission() for permission in permission_classes]
+
+    def create(self, request):
+        """
+        Функция регистрации новых пользователей
+        Если пользователя c указанным в request email ещё нет, в БД будет добавлен новый пользователь.
+        """
+        if self.model_class.objects.filter(email=request.data['email']).exists():
+            return Response({'status': 'Exist'}, status=400)
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            print(serializer.data)
+            self.model_class.objects.create_user(email=serializer.data['email'],
+                                     password=serializer.data['password'],
+                                     is_moderator=serializer.data['is_moderator'])
+            return Response({'status': 'Success'}, status=200)
+        return Response({'status': 'Error', 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
-    res=[]
-    input_text = request.GET.get("good_item")
-    data = Cargo.objects.filter(is_deleted=False)
-    
-    if input_text is not None:
-        # for elem in data:
-        
-        #     if input_text in elem.title:
-        #         res.append(elem)
-        #         #print(elem)
 
-        return render(
-        request,'all_cargo.html', {'data' : {
-            'items' : Cargo.objects.filter(is_deleted=False, title__contains=input_text),
-            'input' : input_text
-        } }
-                     )
-    
-    return render(
-            request,'all_cargo.html', {
-                'data' :
-                {
-                    'items' : data
-                }
-            }
-            
-        )
+def method_permission_classes(classes):
+    def decorator(func):
+        def decorated_func(self, *args, **kwargs):
+            self.permission_classes = classes        
+            self.check_permissions(self.request)
+            return func(self, *args, **kwargs)
+        return decorated_func
+    return decorator
 
-def GetCurrentCargo(request, id):
-    data = Cargo.objects.filter(id_cargo=id)
-    
-    return render(request, 'current_cargo.html', 
-        {'data' : {
-        'item' : data[0]
-    }}
-    )
-
-@csrf_exempt
-def DeleteCurrentCargo(request):
-        if request.method == 'POST':
-            
-            id_del = request.POST.get('id_del') #работает,надо только бд прикрутить в all_cargo
-
-
-            conn = psycopg2.connect(dbname="starship_delivery", host="127.0.0.1", user="postgres", password="1111", port="5432")
-            cursor = conn.cursor()
-            cursor.execute(f"update cargo set is_deleted = true where id_cargo = {id_del}")
-            conn.commit()   # реальное выполнение команд sql1
-            cursor.close()
-            conn.close()
-
-        redirect_url = reverse('all_cargo') 
-        return HttpResponseRedirect(redirect_url)
 
 
 @permission_classes([AllowAny])
@@ -128,19 +124,15 @@ def logout_view(request):
     return Response({'status': 'Success'})
 
 
-from django.http import JsonResponse
-
-
 class CargoList(APIView):
     authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
-    
+
     model_class = Cargo
     serializer_class = CargoSerializer
-    
-    from django.http import JsonResponse
 
-    
+
     def get(self, request, format=None):
         """
         Returns list of orders
@@ -169,6 +161,7 @@ class CargoList(APIView):
 
         return Response(response_data)
 
+    @method_permission_classes((IsModerator,))
     def post(self, request, format=None):
         """
         Создает новый груз
@@ -188,9 +181,6 @@ class CargoList(APIView):
         return binary_data
 
 class CargoDetail(APIView):
-
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
-
     model_class = Cargo
     serializer_class = CargoSerializer
     users_class = Users
@@ -264,7 +254,7 @@ class CargoDetail(APIView):
 
     
         
-
+    @method_permission_classes((IsModerator,))
     def put(self, request, pk, format=None):
         """
         Обновляет информацию о грузe(для модератора)
@@ -283,7 +273,7 @@ class CargoDetail(APIView):
         else:
             return Response(status=status.HTTP_403_FORBIDDEN)
         
-
+    @method_permission_classes((IsModerator,))
     def delete(self, request, pk, format=None):
         """
         Удаляет запись груза логически(через статус)
@@ -295,6 +285,8 @@ class CargoDetail(APIView):
         
 
 @api_view(['Put'])
+@permission_classes([IsAuthenticatedOrReadOnly])
+@authentication_classes([])
 def put_detail(request, pk, format=None):
     """
     Обновляет картинку в услуге
@@ -333,8 +325,6 @@ def put_detail(request, pk, format=None):
 from django.utils.dateparse import parse_date
 
 class OrdersList(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
-
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
 
@@ -423,6 +413,8 @@ class OrderDetail(APIView):
     Обработка конкретных заявок
     '''
     authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
 
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
@@ -504,6 +496,9 @@ class OrderDetail(APIView):
 
 class Cargo_Order_methods(APIView):
     authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    @method_permission_classes((IsModerator,))
     def delete(self, request, pk, format=None):
         '''
         удаление услуги из заявки для конкретного пользователя
@@ -553,35 +548,6 @@ class Cargo_Order_methods(APIView):
 
 
         return Response(status=status.HTTP_404_NOT_FOUND)
-    
-
-
-from rest_framework import viewsets
-class UserViewSet(viewsets.ModelViewSet):
-    """Класс, описывающий методы работы с пользователями
-    Осуществляет связь с таблицей пользователей в базе данных
-    """
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
-
-    queryset = CustomUser.objects.all()
-    serializer_class = UserSerializer
-    model_class = CustomUser
-
-    def create(self, request):
-        """
-        Функция регистрации новых пользователей
-        Если пользователя c указанным в request email ещё нет, в БД будет добавлен новый пользователь.
-        """
-        if self.model_class.objects.filter(email=request.data['email']).exists():
-            return Response({'status': 'Exist'}, status=400)
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            print(serializer.data)
-            self.model_class.objects.create_user(email=serializer.data['email'],
-                                     password=serializer.data['password'],
-                                     is_moderator=serializer.data['is_staff'])
-            return Response({'status': 'Success'}, status=200)
-        return Response({'status': 'Error', 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
 
 

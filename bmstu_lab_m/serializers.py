@@ -1,6 +1,7 @@
 from .models import Cargo
 from .models import DeliveryOrders
 from .models import CargoOrder
+from .models import Users
 from rest_framework import serializers
 #  для преобразования в json и обратно
 
@@ -29,7 +30,10 @@ class Cargo_Order_Serializer(serializers.ModelSerializer):
         # Поля, которые мы сериализуем
         fields = [] # 
 
-
+class Users_Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = Users
+        fields = ['email', 'password', 'is_moderator']
 
 #auth
 from .models import CustomUser
