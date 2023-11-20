@@ -108,10 +108,27 @@ class CargoList(APIView):
         """
         Возвращает список грузов
         """
+        idUser = 2
+
+        data = DeliveryOrders.objects.filter(id_user = idUser, order_status = 'введён')
+        
+        try:
+            id_order_draft = data[0].id_order
+        except IndexError:
+            id_order_draft = None
+
         cargos = self.model_class.objects.all().order_by('weight')
         serializer = self.serializer_class(cargos, many=True)
-        return Response(serializer.data)
-    
+
+        serializer_data = serializer.data
+
+        # Return a dictionary containing the list of orders and the id_order_draft
+        response_data = {
+            'data': serializer_data,
+            'id_order_draft': id_order_draft
+        }
+
+        return Response(response_data)
     def post(self, request, format=None):
         """
         Добавляет новый груз
@@ -160,7 +177,7 @@ class CargoDetail(APIView):
         moderator_instance = get_object_or_404(Users, pk=ind_Moderator)
         cargo_instance = get_object_or_404(Cargo, pk=pk)
         
-        order = DeliveryOrders.objects.all().filter(id_user=user_instance, id_moderator=moderator_instance)
+        order = DeliveryOrders.objects.all().filter(id_user=user_instance, id_moderator=moderator_instance, order_status = 'введён')
         
        
         if not order.exists():
@@ -172,8 +189,12 @@ class CargoDetail(APIView):
             order_to_add.save()
             order = order_to_add
 
+
+        # for i in order:
+        #     print(i)
         order_instance = get_object_or_404(DeliveryOrders, pk = order[0].id_order)
             # и добавляем в таблицу многие ко многим
+
         try:
             many_to_many = CargoOrder.objects.create(id_cargo=cargo_instance, 
                                                         id_order=order_instance,
@@ -182,6 +203,7 @@ class CargoDetail(APIView):
         except:
             # значит в таблице многие ко многим уже существует запись
             pass
+        
 
         return Response(status=status.HTTP_201_CREATED)
         
@@ -231,7 +253,7 @@ def put_detail(request, pk, format=None):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
+from django.utils.dateparse import parse_date
 
 class OrdersList(APIView):
     model_class = DeliveryOrders
@@ -246,7 +268,39 @@ class OrdersList(APIView):
         all_orders = self.model_class.objects.all()
         serializer = self.serializer_class(all_orders, many=True)
         return Response(serializer.data)
-    
+    def put(self, request, format=None):
+        """
+        Метод для фильтрации списка заявок
+        """
+
+        # Retrieve filter parameters from request data
+        start_date_str = request.data.get('start_date')
+        end_date_str = request.data.get('end_date')
+        status = request.data.get('status')
+
+        # Convert date strings to datetime.date objects
+        start_date = parse_date(start_date_str) if start_date_str else None
+        end_date = parse_date(end_date_str) if end_date_str else None
+
+        # Get all orders
+        all_orders = self.model_class.objects.all()
+
+        # Filter orders by date if start_date and end_date are provided
+        if start_date and end_date:
+            all_orders = all_orders.filter(date_create__range=(start_date, end_date))
+
+        # Filter orders by status if status is provided
+        if status:
+            all_orders = all_orders.filter(order_status=status)
+
+        # Order by status and date
+        all_orders = all_orders.order_by('order_status', 'date_create')
+
+        # Serialize and return the filtered orders
+        serializer = self.serializer_class(all_orders, many=True)
+        serialized_data = serializer.data  # this is a list of dictionaries
+
+        return Response(serialized_data)
 
 
 class OrderDetail(APIView):
