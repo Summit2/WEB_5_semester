@@ -135,8 +135,8 @@ class CargoList(APIView):
         """
 
         # Retrieve filter parameters from request data
-        weight_filter = request.data.get('filter')
-        if weight_filter == 'weight':
+        filter = request.data.get('filter')
+        if filter == 'weight':
             cargos = self.model_class.objects.all().order_by('weight')
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -147,7 +147,7 @@ class CargoList(APIView):
 
         return Response(serialized_data)
     
-    
+
     def post(self, request, format=None):
         """
         Добавляет новый груз
@@ -284,9 +284,25 @@ class OrdersList(APIView):
         """
         Возвращает список акций
         """
-        all_orders = self.model_class.objects.all()
-        serializer = self.serializer_class(all_orders, many=True)
-        return Response(serializer.data)
+        idUser = 2
+        all_orders = self.model_class.objects.filter(id_user = idUser)
+        data = []
+        for order in all_orders:
+            user = Users.objects.get(id_user=order.id_user.id_user)
+            moderator = Users.objects.get(id_user=order.id_moderator.id_user)
+            data.append({
+                "pk": order.pk,
+                "id_order": order.id_order,
+                "user_email": user.email,
+                "id_moderator": moderator.id_user,
+                "order_status": order.order_status,
+                "date_create": order.date_create,
+                "date_accept": order.date_accept,
+                "date_finish": order.date_finish
+            })
+        return Response(data)
+
+
     def put(self, request, format=None):
         """
         Метод для фильтрации списка заявок
