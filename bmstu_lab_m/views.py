@@ -346,8 +346,53 @@ class OrderDetail(APIView):
         """
         order = get_object_or_404(self.model_class, pk=pk)
         order.order_status = "удалён"
+        order.save()  # Save the changes to the database
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
+
+
+
+
+class UpdateUserStatus(APIView):
+    model_class = DeliveryOrders
+    serializer_class = OrdersSerializer
+    def put(self, request, format=None):
+        """
+        Обновляет статус для пользователя
+        """
+        
+        try:
+            idUser = request.data.get('id_user')
+            idModer = request.data.get('id_moderator')
+        except:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        self.model_class.objects.filter(id_user = idUser, id_moderator = idModer, order_status = 'введён').update(order_status = 'в работе')
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+        
+
+
+
+
+class UpdateModeratorStatus(APIView):
+    model_class = DeliveryOrders
+    serializer_class = OrdersSerializer
+
+    def put(self, request, format=None):
+        """
+        Обновляет статус для модератора
+        """
+        
+        try:
+            idUser = request.data.get('id_user')
+            idModer = request.data.get('id_moderator')
+        except:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        order = self.model_class.objects.filter(id_user = idUser,id_moderator = idModer, order_status = 'в работе').update(order_status = 'завершён') #
+        # order.order_status = "завершён"
+        # order.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 # @api_view(['Put'])
 # def put_detail(request, pk, format=None):
 #     """

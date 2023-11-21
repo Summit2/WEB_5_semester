@@ -42,6 +42,10 @@ urlpatterns = [
     path(r'orders/', views.OrdersList.as_view(), name='orders-list'),
     path(r'order/<int:pk>/', views.OrderDetail.as_view(), name='order-detail'),
 
+    path(r'update/form/', views.UpdateUserStatus.as_view(), name='update_status_user'),
+    path(r'update/unform/', views.UpdateModeratorStatus.as_view(), name='order-update_status_moderator'),
+
+
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
 
