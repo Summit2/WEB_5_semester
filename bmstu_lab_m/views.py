@@ -129,6 +129,25 @@ class CargoList(APIView):
         }
 
         return Response(response_data)
+    def put(self, request, format=None):
+        """
+        Метод для фильтрации списка грузов
+        """
+
+        # Retrieve filter parameters from request data
+        weight_filter = request.data.get('filter')
+        if weight_filter == 'weight':
+            cargos = self.model_class.objects.all().order_by('weight')
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        # Serialize and return the filtered orders
+        serializer = self.serializer_class(cargos, many=True)
+        serialized_data = serializer.data  
+
+        return Response(serialized_data)
+    
+    
     def post(self, request, format=None):
         """
         Добавляет новый груз
@@ -146,7 +165,7 @@ class CargoList(APIView):
         with open(bi_image_path, 'rb') as file:
             binary_data = file.read()
         return binary_data
-
+    
 class CargoDetail(APIView):
     model_class = Cargo
     serializer_class = CargoSerializer
@@ -390,17 +409,5 @@ class UpdateModeratorStatus(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
         order = self.model_class.objects.filter(id_user = idUser,id_moderator = idModer, order_status = 'в работе').update(order_status = 'завершён') #
-        # order.order_status = "завершён"
-        # order.save()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
-# @api_view(['Put'])
-# def put_detail(request, pk, format=None):
-#     """
-#     Обновляет информацию об акции (для пользователя)
-#     """
-#     stock = get_object_or_404(Stock, pk=pk)
-#     serializer = StockSerializer(stock, data=request.data, partial=True)
-#     if serializer.is_valid():
-#         serializer.save()
-#         return Response(serializer.data)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
