@@ -1,0 +1,6 @@
+{
+  "homepage": "http://summit2.github.io/my_app",
+  "devDependencies": {
+    "gh-pages": "^6.1.0"
+  }
+}

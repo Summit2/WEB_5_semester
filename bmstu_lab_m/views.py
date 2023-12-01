@@ -14,6 +14,8 @@ from bmstu_lab_m.models import CargoOrder
 from bmstu_lab_m.models import DeliveryOrders
 #from bmstu_lab_m.models import DeliveryOrders
 from bmstu_lab_m.models import Users
+from django.db.models import Q
+
 
 # все для Rest Api
 from rest_framework.response import Response
@@ -107,7 +109,11 @@ class CargoList(APIView):
     def get(self, request, format=None):
         """
         Возвращает список грузов
+        также есть фильтр filter
+        
         """
+        
+        how_to_filter = request.GET.get('filter', None)
         idUser = 2
 
         data = DeliveryOrders.objects.filter(id_user = idUser, order_status = 'введён')
@@ -117,7 +123,17 @@ class CargoList(APIView):
         except IndexError:
             id_order_draft = None
 
-        cargos = self.model_class.objects.all().order_by('weight')
+        if how_to_filter is not None:
+
+            if how_to_filter == 'weight' or how_to_filter=='title':
+                cargos = self.model_class.objects.all().order_by(f'{how_to_filter}')
+
+            else:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        else:
+            cargos = self.model_class.objects.all()
+
         serializer = self.serializer_class(cargos, many=True)
 
         serializer_data = serializer.data
@@ -129,24 +145,7 @@ class CargoList(APIView):
         }
 
         return Response(response_data)
-    def put(self, request, format=None):
-        """
-        Метод для фильтрации списка грузов
-        """
-
-        # Retrieve filter parameters from request data
-        filter = request.data.get('filter')
-        if filter == 'weight':
-            cargos = self.model_class.objects.all().order_by('weight')
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        # Serialize and return the filtered orders
-        serializer = self.serializer_class(cargos, many=True)
-        serialized_data = serializer.data  
-
-        return Response(serialized_data)
-    
+   
 
     def post(self, request, format=None):
         """
@@ -175,6 +174,7 @@ class CargoDetail(APIView):
         """
         Возвращает информацию грузe
         """
+        
         cargo = get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(cargo)
         return Response(serializer.data)
@@ -281,11 +281,23 @@ class OrdersList(APIView):
    
 
     def get(self, request, format=None):
-        """
-        Возвращает список акций
-        """
+
+        date_create = request.GET.get('date_create', None)
+        date_accept = request.GET.get('date_accept', None)
+        date_finish = request.GET.get('date_finished', None)
+        order_status = request.GET.get('order_status', None)
+
         idUser = 2
+        
         all_orders = self.model_class.objects.filter(id_user = idUser)
+
+        if order_status is not None:
+            
+            all_orders = self.model_class.objects.filter(id_user = idUser, order_status = order_status)
+
+
+
+        
         data = []
         for order in all_orders:
             user = Users.objects.get(id_user=order.id_user.id_user)
@@ -303,39 +315,7 @@ class OrdersList(APIView):
         return Response(data)
 
 
-    def put(self, request, format=None):
-        """
-        Метод для фильтрации списка заявок
-        """
-
-        # Retrieve filter parameters from request data
-        start_date_str = request.data.get('start_date')
-        end_date_str = request.data.get('end_date')
-        status = request.data.get('status')
-
-        # Convert date strings to datetime.date objects
-        start_date = parse_date(start_date_str) if start_date_str else None
-        end_date = parse_date(end_date_str) if end_date_str else None
-
-        # Get all orders
-        all_orders = self.model_class.objects.all()
-
-        # Filter orders by date if start_date and end_date are provided
-        if start_date and end_date:
-            all_orders = all_orders.filter(date_create__range=(start_date, end_date))
-
-        # Filter orders by status if status is provided
-        if status:
-            all_orders = all_orders.filter(order_status=status)
-
-        # Order by status and date
-        all_orders = all_orders.order_by('order_status', 'date_create')
-
-        # Serialize and return the filtered orders
-        serializer = self.serializer_class(all_orders, many=True)
-        serialized_data = serializer.data  # this is a list of dictionaries
-
-        return Response(serialized_data)
+    
 
 
 class OrderDetail(APIView):
@@ -424,6 +404,62 @@ class UpdateModeratorStatus(APIView):
         except:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
-        order = self.model_class.objects.filter(id_user = idUser,id_moderator = idModer, order_status = 'в работе').update(order_status = 'завершён') #
+        order = self.model_class.objects.filter(id_user = idUser,id_moderator = idModer, order_status = 'в работе').update(order_status = 'завершён')
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+class Cargo_Order_methods(APIView):
+
+    def delete(self, request, pk, format=None):
+        '''
+        удаление услуги из заявки для конкретного пользователя
+        если услуга была последняя, то и заявка тоже удаляется
+
+        запрос для получения всех заказов со всеми грузами в них:
+            select * from delivery_orders as dor 
+            inner join cargo_order as ca on ca.id_order = dor.id_order;
+        '''
+        idUser = 2
+        idModerator = 1 
+        # del_object = get_object_or_404(self.method_class, pk=pk)
+        active_order = DeliveryOrders.objects.filter( Q(order_status = 'введён') | Q(order_status = 'в работе'), id_user = idUser)
+        
+        if active_order.exists():
+    
+            del_result = CargoOrder.objects.filter(id_order = active_order[0].id_order, id_cargo = pk).delete()
+            #del_res - tuple (number_of_deleted, dict of deleted)
+            print('deleted:', del_result)
+            if del_result[0] == 0:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    def put(self, request, pk, format=None):
+        '''
+         изменение количества в м-м
+         pk - номер груза, количество которого надо изменить
+        '''
+
+        idUser = 2
+        idModerator = 1 
+        new_amount = request.data['amount']
+        active_order = DeliveryOrders.objects.filter( Q(order_status = 'введён') | Q(order_status = 'в работе'), id_user = idUser)
+        # print('PUT update_order (updating amount). Current order: ', active_order)
+        if active_order.exists():
+
+            CargoOrder.objects.filter(id_order = active_order[0].id_order,
+                                       id_cargo = pk,
+                                       ).update(amount = new_amount)
+
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
