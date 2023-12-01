@@ -295,7 +295,16 @@ class OrdersList(APIView):
             
             all_orders = self.model_class.objects.filter(id_user = idUser, order_status = order_status)
 
+        if date_create is not None:
+            
+            if date_finish is not None:
+                all_orders = self.model_class.objects.filter(id_user = idUser, date_create = date_create,date_finish =date_finish)
+            else:
+                all_orders = self.model_class.objects.filter(id_user = idUser, date_create = '01.01.1980',date_finish =date_finish)
+        else:
+            all_orders = self.model_class.objects.filter(id_user = idUser, date_create = '01.01.1980')
 
+        
 
         
         data = []
