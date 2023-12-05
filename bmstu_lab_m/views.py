@@ -114,6 +114,7 @@ class CargoList(APIView):
         """
         
         how_to_filter = request.GET.get('filter', None)
+        if_search = request.GET.get('search', None)
         idUser = 2
 
         data = DeliveryOrders.objects.filter(id_user = idUser, order_status = 'введён')
@@ -126,13 +127,23 @@ class CargoList(APIView):
         if how_to_filter is not None:
 
             if how_to_filter == 'weight' or how_to_filter=='title':
-                cargos = self.model_class.objects.all().order_by(f'{how_to_filter}')
+                cargos = self.model_class.objects.all().filter(is_deleted = False).order_by(f'{how_to_filter}')
 
             else:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
         else:
-            cargos = self.model_class.objects.all()
+            cargos = self.model_class.objects.all().filter(is_deleted = False)
+
+        if if_search is not None:
+
+            
+            cargos = self.model_class.objects.all().filter(is_deleted = False, title__icontains = f'{if_search}')
+
+            
+
+        else:
+            cargos = self.model_class.objects.all().filter(is_deleted = False)
 
         serializer = self.serializer_class(cargos, many=True)
 
@@ -165,6 +176,10 @@ class CargoList(APIView):
             binary_data = file.read()
         return binary_data
     
+
+
+from datetime import datetime
+
 class CargoDetail(APIView):
     model_class = Cargo
     serializer_class = CargoSerializer
@@ -175,7 +190,7 @@ class CargoDetail(APIView):
         Возвращает информацию грузe
         """
         
-        cargo = get_object_or_404(self.model_class, pk=pk)
+        cargo = Cargo.objects.filter(id_cargo = pk , is_deleted = False)[0]#get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(cargo)
         return Response(serializer.data)
     
@@ -204,16 +219,22 @@ class CargoDetail(APIView):
             # и присваиваем ему статус 'введён'
             order_to_add = DeliveryOrders.objects.create(id_user = user_instance,
                                                           id_moderator=moderator_instance, 
-                                                          order_status = 'введён' )
+                                                          order_status = 'введён' ,
+                                                          date_create = datetime.now())
             order_to_add.save()
             order = order_to_add
 
 
         # for i in order:
         #     print(i)
-        order_instance = get_object_or_404(DeliveryOrders, pk = order[0].id_order)
+        # order_instance = get_object_or_404(DeliveryOrders, pk = order[0].id_order)
+        try:
+            for order_item in order:
+                order_instance = get_object_or_404(DeliveryOrders, pk=order_item.id_order)
+                break
             # и добавляем в таблицу многие ко многим
-
+        except:
+            pass
         try:
             many_to_many = CargoOrder.objects.create(id_cargo=cargo_instance, 
                                                         id_order=order_instance,
@@ -256,7 +277,9 @@ class CargoDetail(APIView):
         del_item = get_object_or_404(self.model_class, pk=pk)
         del_item.is_deleted = True
         del_item.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        print(del_item)
+        return Response(status=status.HTTP_200_OK)
         
 
 @api_view(['Put'])
@@ -300,9 +323,9 @@ class OrdersList(APIView):
             if date_finish is not None:
                 all_orders = self.model_class.objects.filter(id_user = idUser, date_create = date_create,date_finish =date_finish)
             else:
-                all_orders = self.model_class.objects.filter(id_user = idUser, date_create = '01.01.1980',date_finish =date_finish)
+                all_orders = self.model_class.objects.filter(id_user = idUser, date_create = '1980-01-01',date_finish =date_finish)
         else:
-            all_orders = self.model_class.objects.filter(id_user = idUser, date_create = '01.01.1980')
+            all_orders = self.model_class.objects.filter(id_user = idUser)
 
         
 
@@ -382,6 +405,12 @@ class UpdateUserStatus(APIView):
     def put(self, request, format=None):
         """
         Обновляет статус для пользователя
+
+{
+    "id_user" : 2,
+    "id_moderator" :1 
+
+}
         """
         
         try:
@@ -390,7 +419,7 @@ class UpdateUserStatus(APIView):
         except:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
-        self.model_class.objects.filter(id_user = idUser, id_moderator = idModer, order_status = 'введён').update(order_status = 'в работе')
+        self.model_class.objects.filter(id_user = idUser, id_moderator = idModer, order_status = 'введён').update(order_status = 'в работе', date_accept = datetime.now())
         return Response(status=status.HTTP_204_NO_CONTENT)
 
         
