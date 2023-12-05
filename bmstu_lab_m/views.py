@@ -29,76 +29,171 @@ from bmstu_lab_m.serializers import CargoSerializer
 from bmstu_lab_m.serializers import OrdersSerializer
 # from bmstu_lab_m.serializers import Cargo_Order_Serializer
 
+from drf_yasg.utils import swagger_auto_schema
+from django.utils.text import slugify
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+from django.http import HttpRequest
+
+from django.db.models import Q, F
+from drf_yasg import openapi
+
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+import hashlib
+import secrets
+
 '''Заявки на доставку грузов на Марс на Starship. 
 Услуги - товары, доставляемыe на Марс на Starship, 
    заявки - заявки на конкретный объем товаров
 '''
-
-conn = psycopg2.connect(
-    dbname="starship_delivery",
-    user="postgres",
-    password="1111",
-    host="localhost",
-    port="5432"
+from redis_view import (
+    set_key,
+    get_value,
+    delete_value
 )
 
+USER_ID = 5
+MODERATOR_ID = 6
 
-def GetAllCargo(request):
-    
-    res=[]
-    input_text = request.GET.get("good_item")
-    data = Cargo.objects.filter(is_deleted=False)
-    
-    if input_text is not None:
-        # for elem in data:
-        
-        #     if input_text in elem.title:
-        #         res.append(elem)
-        #         #print(elem)
 
-        return render(
-        request,'all_cargo.html', {'data' : {
-            'items' : Cargo.objects.filter(is_deleted=False, title__contains=input_text),
-            'input' : input_text
-        } }
-                     )
-    
-    return render(
-            request,'all_cargo.html', {
-                'data' :
-                {
-                    'items' : data
-                }
-            }
-            
-        )
+def check_user(request):
+    response = login_view_get(request._request)
+    if response.status_code == 200:
+        user = Users.objects.get(user_id=response.data.get('user_id').decode())
+        return user.role == 'USR'
+    return False
 
-def GetCurrentCargo(request, id):
-    data = Cargo.objects.filter(id_cargo=id)
-    
-    return render(request, 'current_cargo.html', 
-        {'data' : {
-        'item' : data[0]
-    }}
+
+def check_moderator(request):
+    response = login_view_get(request._request)
+    if response.status_code == 200:
+        user = Users.objects.get(user_id=response.data.get('user_id'))
+        return user.role == 'MOD'
+    return False
+
+
+#ser Domain
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['first_name', 'second_name', 'email', 'login', 'password'],
+        properties={
+            'first_name': openapi.Schema(type=openapi.TYPE_STRING, description='Имя пользователя'),
+            'second_name': openapi.Schema(type=openapi.TYPE_STRING, description='Фамилия пользователя'),
+            'email': openapi.Schema(type=openapi.TYPE_STRING, description='Электронная почта пользователя'),
+            'login': openapi.Schema(type=openapi.TYPE_STRING, description='Логин пользователя'),
+            'password': openapi.Schema(type=openapi.TYPE_STRING, description='Пароль пользователя'),
+        }
+    ),
+    responses={
+        201: openapi.Response(description='Пользователь успешно создан'),
+        400: openapi.Response(description='Не хватает обязательных полей или пользователь уже существует'),
+    },
+    operation_description='Регистрация нового пользователя',
+)
+@api_view(['POST'])
+def registration(request, format=None):
+    required_fields = ['first_name', 'second_name', 'email', 'login', 'password']
+    missing_fields = [field for field in required_fields if field not in request.data]
+
+    if missing_fields:
+        return Response({'Ошибка': f'Не хватает обязательных полей: {", ".join(missing_fields)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if Users.objects.filter(email=request.data['email']).exists() or Users.objects.filter(login=request.data['login']).exists():
+        return Response({'Ошибка': 'Пользователь с таким email или login уже существует'}, status=status.HTTP_400_BAD_REQUEST)
+
+    password_hash = hashlib.sha256(f'{request.data["password"]}'.encode()).hexdigest()
+
+    Users.objects.create(
+        first_name=request.data['first_name'],
+        second_name=request.data['second_name'],
+        email=request.data['email'],
+        login=request.data['login'],
+        password=password_hash,
+        role='USR',
     )
-
-@csrf_exempt
-def DeleteCurrentCargo(request):
-        if request.method == 'POST':
-            
-            id_del = request.POST.get('id_del') #работает,надо только бд прикрутить в all_cargo
+    return Response(status=status.HTTP_201_CREATED)
 
 
-            conn = psycopg2.connect(dbname="starship_delivery", host="127.0.0.1", user="postgres", password="1111", port="5432")
-            cursor = conn.cursor()
-            cursor.execute(f"update cargo set is_deleted = true where id_cargo = {id_del}")
-            conn.commit()   # реальное выполнение команд sql1
-            cursor.close()
-            conn.close()
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'login': openapi.Schema(type=openapi.TYPE_STRING, description='Логин пользователя'),
+            'password': openapi.Schema(type=openapi.TYPE_STRING, description='Пароль пользователя'),
+        },
+        required=['login', 'password'],
+    ),
+    responses={
+        200: openapi.Response(description='Успешная авторизация', schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'user_id': openapi.Schema(type=openapi.TYPE_INTEGER)})),
+        400: openapi.Response(description='Неверные параметры запроса или отсутствуют обязательные поля'),
+        401: openapi.Response(description='Неавторизованный доступ'),
+    },
+    operation_description='Метод для авторизации',
+)
+@api_view(['POST'])
+def login_view(request, format=None):
+    existing_session = request.COOKIES.get('session_key')
+    if existing_session and get_value(existing_session):
+        return Response({'user_id': get_value(existing_session)})
 
-        redirect_url = reverse('all_cargo') 
-        return HttpResponseRedirect(redirect_url)
-    
+    login_ = request.data.get("login")
+    password = request.data.get("password")
+
+    if not login_ or not password:
+        return Response({'error': 'Необходимы логин и пароль'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.get(login=login_)
+    except Users.DoesNotExist:
+        return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+    password_hash = hashlib.sha256(f'{password}'.encode()).hexdigest()
+
+    if password_hash == user.password:
+        random_part = secrets.token_hex(8)
+        session_hash = hashlib.sha256(f'{user.user_id}:{login_}:{random_part}'.encode()).hexdigest()
+        set_key(session_hash, user.user_id)
+
+        response = JsonResponse({'user_id': user.user_id})
+        response.set_cookie('session_key', session_hash, max_age=86400)
+        return response
+
+    return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['GET'])
+def login_view_get(request, format=None):
+    existing_session = request.COOKIES.get('session_key')
+    if existing_session and get_value(existing_session):
+        return Response({'user_id': get_value(existing_session)})
+    return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+
+@swagger_auto_schema(
+    method='get',
+    responses={
+        200: openapi.Response(description='Успешный выход', schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'message': openapi.Schema(type=openapi.TYPE_STRING)})),
+        401: openapi.Response(description='Неавторизованный доступ', schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'error': openapi.Schema(type=openapi.TYPE_STRING)})),
+    },
+    operation_description='Метод для выхода пользователя из системы',
+)
+@api_view(['GET'])
+def logout_view(request):
+    session_key = request.COOKIES.get('session_key')
+
+    if session_key:
+        if not get_value(session_key):
+            return JsonResponse({'error': 'Вы не авторизованы'}, status=status.HTTP_401_UNAUTHORIZED)
+        delete_value(session_key)
+        response = JsonResponse({'message': 'Вы успешно вышли из системы'})
+        response.delete_cookie('session_key')
+        return response
+    else:
+        return JsonResponse({'error': 'Вы не авторизованы'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 
@@ -302,9 +397,13 @@ class OrdersList(APIView):
     serializer_class = OrdersSerializer
 
    
-
+    
     def get(self, request, format=None):
 
+
+        if not check_moderator(request):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
         date_create = request.GET.get('date_create', None)
         date_accept = request.GET.get('date_accept', None)
         date_finish = request.GET.get('date_finished', None)
@@ -358,6 +457,9 @@ class OrderDetail(APIView):
         """
         Возвращает информацию об акции
         """
+        if not check_moderator(request):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         order = get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(order)
 
@@ -403,6 +505,8 @@ class UpdateUserStatus(APIView):
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
     def put(self, request, format=None):
+        if not check_moderator(request):
+            return Response(status=status.HTTP_403_FORBIDDEN)
         """
         Обновляет статус для пользователя
 
