@@ -442,7 +442,8 @@ class UpdateModeratorStatus(APIView):
         except:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
-        order = self.model_class.objects.filter(id_user = idUser,id_moderator = idModer, order_status = 'в работе').update(order_status = 'завершён')
+        order = self.model_class.objects.filter(id_user = idUser,id_moderator = idModer, order_status = 'в работе').update(date_finished= datetime.now(),order_status = 'завершён')
+        
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
