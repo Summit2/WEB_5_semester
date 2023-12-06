@@ -47,11 +47,30 @@ import secrets
 Услуги - товары, доставляемыe на Марс на Starship, 
    заявки - заявки на конкретный объем товаров
 '''
-from redis_view import (
-    set_key,
-    get_value,
-    delete_value
-)
+import redis
+
+
+def get_instance_redis():
+    red =  redis.Redis(
+        host='0.0.0.0',
+        port=6379,
+    )
+    return red
+
+
+def set_key(key, value):
+    red = get_instance_redis()
+    red.set(key, value, ex=86400)
+
+
+def get_value(key):
+    red = get_instance_redis()
+    return red.get(key)
+
+
+def delete_value(key):
+    red = get_instance_redis()
+    red.delete(key)
 
 USER_ID = 5
 MODERATOR_ID = 6
@@ -61,7 +80,7 @@ def check_user(request):
     response = login_view_get(request._request)
     if response.status_code == 200:
         user = Users.objects.get(user_id=response.data.get('user_id').decode())
-        return user.role == 'USR'
+        return user.is_moderator == False
     return False
 
 
@@ -69,22 +88,32 @@ def check_moderator(request):
     response = login_view_get(request._request)
     if response.status_code == 200:
         user = Users.objects.get(user_id=response.data.get('user_id'))
-        return user.role == 'MOD'
+        return user.is_moderator == True
     return False
 
+
+
+
+def check_authorize(request):
+    response = login_view_get(request._request)
+    if response.status_code == 200:
+        user = Users.objects.get(user_id=response.data.get('user_id'))
+        return user
+    return None
 
 #ser Domain
 @swagger_auto_schema(
     method='post',
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
-        required=['first_name', 'second_name', 'email', 'login', 'password'],
+        required=['first_name', 'last_name', 'email',  'passwd'], #'login',
         properties={
             'first_name': openapi.Schema(type=openapi.TYPE_STRING, description='Имя пользователя'),
-            'second_name': openapi.Schema(type=openapi.TYPE_STRING, description='Фамилия пользователя'),
+            'last_name': openapi.Schema(type=openapi.TYPE_STRING, description='Фамилия пользователя'),
             'email': openapi.Schema(type=openapi.TYPE_STRING, description='Электронная почта пользователя'),
-            'login': openapi.Schema(type=openapi.TYPE_STRING, description='Логин пользователя'),
-            'password': openapi.Schema(type=openapi.TYPE_STRING, description='Пароль пользователя'),
+            # 'login': openapi.Schema(type=openapi.TYPE_STRING, description='Логин пользователя'),
+            'passwd': openapi.Schema(type=openapi.TYPE_STRING, description='Пароль пользователя'),
+            # 'is_moderator' : openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Пользователь является модератором?'),
         }
     ),
     responses={
@@ -95,25 +124,29 @@ def check_moderator(request):
 )
 @api_view(['POST'])
 def registration(request, format=None):
-    required_fields = ['first_name', 'second_name', 'email', 'login', 'password']
+    required_fields = ['first_name', 'last_name', 'email',  'passwd',]#''login',is_moderator']
     missing_fields = [field for field in required_fields if field not in request.data]
 
     if missing_fields:
         return Response({'Ошибка': f'Не хватает обязательных полей: {", ".join(missing_fields)}'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if Users.objects.filter(email=request.data['email']).exists() or Users.objects.filter(login=request.data['login']).exists():
-        return Response({'Ошибка': 'Пользователь с таким email или login уже существует'}, status=status.HTTP_400_BAD_REQUEST)
+    if Users.objects.filter(email=request.data['email']).exists():
+        return Response({'Ошибка': 'Пользователь с таким email уже существует'}, status=status.HTTP_400_BAD_REQUEST)
 
-    password_hash = hashlib.sha256(f'{request.data["password"]}'.encode()).hexdigest()
+    password_hash = hashlib.sha256(f'{request.data["passwd"]}'.encode()).hexdigest()
 
+    # try:
     Users.objects.create(
         first_name=request.data['first_name'],
-        second_name=request.data['second_name'],
+        last_name=request.data['last_name'],
         email=request.data['email'],
-        login=request.data['login'],
-        password=password_hash,
-        role='USR',
+        # login=request.data['login'],
+        passwd=password_hash,
+        # is_moderator=request.data['is_moderator'],
     )
+    # except:
+    #     return Response({'Ошибка': f'Не удалось создать пользователя'}, status=status.HTTP_400_BAD_REQUEST)
+
     return Response(status=status.HTTP_201_CREATED)
 
 
@@ -122,10 +155,12 @@ def registration(request, format=None):
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
-            'login': openapi.Schema(type=openapi.TYPE_STRING, description='Логин пользователя'),
-            'password': openapi.Schema(type=openapi.TYPE_STRING, description='Пароль пользователя'),
+            'email': openapi.Schema(type=openapi.TYPE_STRING, description='Почта пользователя'),
+            'passwd': openapi.Schema(type=openapi.TYPE_STRING, description='Пароль пользователя'),
+            # 'is_moderator': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Является ли пользователь модератором?'),
+            
         },
-        required=['login', 'password'],
+        required=['email', 'passwd'],
     ),
     responses={
         200: openapi.Response(description='Успешная авторизация', schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'user_id': openapi.Schema(type=openapi.TYPE_INTEGER)})),
@@ -140,11 +175,11 @@ def login_view(request, format=None):
     if existing_session and get_value(existing_session):
         return Response({'user_id': get_value(existing_session)})
 
-    login_ = request.data.get("login")
-    password = request.data.get("password")
+    login_ = request.data.get("email")
+    password = request.data.get("passwd")
 
     if not login_ or not password:
-        return Response({'error': 'Необходимы логин и пароль'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Необходимы почта и пароль'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         user = Users.objects.get(login=login_)
