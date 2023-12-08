@@ -72,14 +72,14 @@ def delete_value(key):
     red = get_instance_redis()
     red.delete(key)
 
-USER_ID = 5
+id_user = 5
 MODERATOR_ID = 6
 
 
 def check_user(request):
     response = login_view_get(request._request)
     if response.status_code == 200:
-        user = Users.objects.get(user_id=response.data.get('user_id').decode())
+        user = Users.objects.get(id_user=response.data.get('id_user').decode())
         return user.is_moderator == False
     return False
 
@@ -87,7 +87,7 @@ def check_user(request):
 def check_moderator(request):
     response = login_view_get(request._request)
     if response.status_code == 200:
-        user = Users.objects.get(user_id=response.data.get('user_id'))
+        user = Users.objects.get(id_user=response.data.get('id_user'))
         return user.is_moderator == True
     return False
 
@@ -97,7 +97,7 @@ def check_moderator(request):
 def check_authorize(request):
     response = login_view_get(request._request)
     if response.status_code == 200:
-        user = Users.objects.get(user_id=response.data.get('user_id'))
+        user = Users.objects.get(id_user=response.data.get('id_user'))
         return user
     return None
 
@@ -163,7 +163,7 @@ def registration(request, format=None):
         required=['email', 'passwd'],
     ),
     responses={
-        200: openapi.Response(description='Успешная авторизация', schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'user_id': openapi.Schema(type=openapi.TYPE_INTEGER)})),
+        200: openapi.Response(description='Успешная авторизация', schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={'id_user': openapi.Schema(type=openapi.TYPE_INTEGER)})),
         400: openapi.Response(description='Неверные параметры запроса или отсутствуют обязательные поля'),
         401: openapi.Response(description='Неавторизованный доступ'),
     },
@@ -173,27 +173,27 @@ def registration(request, format=None):
 def login_view(request, format=None):
     existing_session = request.COOKIES.get('session_key')
     if existing_session and get_value(existing_session):
-        return Response({'user_id': get_value(existing_session)})
+        return Response({'id_user': get_value(existing_session)})
 
-    login_ = request.data.get("email")
+    email_ = request.data.get("email")
     password = request.data.get("passwd")
 
-    if not login_ or not password:
+    if not email_ or not password:
         return Response({'error': 'Необходимы почта и пароль'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user = Users.objects.get(login=login_)
+        user = Users.objects.get(email=email_)
     except Users.DoesNotExist:
         return Response(status=status.HTTP_401_UNAUTHORIZED)
 
     password_hash = hashlib.sha256(f'{password}'.encode()).hexdigest()
 
-    if password_hash == user.password:
+    if password_hash == user.passwd:
         random_part = secrets.token_hex(8)
-        session_hash = hashlib.sha256(f'{user.user_id}:{login_}:{random_part}'.encode()).hexdigest()
-        set_key(session_hash, user.user_id)
+        session_hash = hashlib.sha256(f'{user.id_user}:{email_}:{random_part}'.encode()).hexdigest()
+        set_key(session_hash, user.id_user)
 
-        response = JsonResponse({'user_id': user.user_id})
+        response = JsonResponse({'id_user': user.id_user})
         response.set_cookie('session_key', session_hash, max_age=86400)
         return response
 
@@ -204,7 +204,7 @@ def login_view(request, format=None):
 def login_view_get(request, format=None):
     existing_session = request.COOKIES.get('session_key')
     if existing_session and get_value(existing_session):
-        return Response({'user_id': get_value(existing_session)})
+        return Response({'id_user': get_value(existing_session)})
     return Response(status=status.HTTP_401_UNAUTHORIZED)
 
 

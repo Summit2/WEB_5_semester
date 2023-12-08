@@ -170,11 +170,11 @@ class DjangoSession(models.Model):
 class Users(models.Model):
     first_name = models.CharField(max_length=200, blank=True, null=True)
     last_name = models.CharField(max_length=200, blank=True, null=True)
-    email = models.CharField(unique=True, max_length=300, blank=True, null=True)
+    email = models.CharField(unique=True, max_length=254, blank=True, null=True)
     passwd = models.CharField(max_length=500, blank=True, null=True)
     id_user = models.AutoField(primary_key=True)
     is_moderator = models.BooleanField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'users'
