@@ -98,14 +98,20 @@ def check_moderator(request):
 
 
 
-def check_authorize(request):
+def check_authorize_get(request):
     response = login_view_get(request._request)
     if response.status_code == 200:
         user = Users.objects.get(id_user=response.data.get('id_user'))
-        print(f'User in check_authorize^ {user}')
+        print(f'User in check_authorize: {user}')
         return user
     return None
-
+def check_authorize(request):
+    response = login_view(request._request)
+    if response.status_code == 200:
+        user = Users.objects.get(id_user=response.data.get('id_user'))
+        print(f'User in check_authorize: {user}')
+        return user
+    return None
 #ser Domain
 @swagger_auto_schema(
     method='post',
@@ -248,7 +254,7 @@ class CargoList(APIView):
         
         """
         
-        user = check_authorize(request)
+        user = check_authorize_get(request)
         
         if not user:
             return Response(status=status.HTTP_403_FORBIDDEN)
@@ -351,9 +357,8 @@ class CargoDetail(APIView):
     def post(self, request, pk, format=None):
         
         user = check_authorize(request)
-        print(request)
-        if not user:
-            print('POST cargo/id/ , user = None')
+        
+        if not user or user.is_moderator == False:
             return Response(status=status.HTTP_403_FORBIDDEN)
         '''
         Добавление определенного груза в заявку 
@@ -418,7 +423,12 @@ class CargoDetail(APIView):
         Обновляет информацию о грузe(для модератора)
         """
 
-        ind_Moderator = 1 # хардкод
+        
+        user = check_authorize(request)
+        if not user or user.is_moderator == False:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        ind_Moderator = user.id_user # хардкод
         if Users.objects.all().filter(id_user = ind_Moderator)[0].is_moderator == True:
         
 
@@ -436,6 +446,10 @@ class CargoDetail(APIView):
         """
         Удаляет запись груза логически(через статус)
         """
+        user = check_authorize(request)
+        if not user or user.is_moderator == False:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         del_item = get_object_or_404(self.model_class, pk=pk)
         del_item.is_deleted = True
         del_item.save()
@@ -449,6 +463,7 @@ def put_detail(request, pk, format=None):
     """
     Обновляет информацию о грузe (для пользователя)
     """
+    #no user, why
     cargo = get_object_or_404(Cargo, pk=pk)
     serializer = CargoSerializer(cargo, data=request.data, partial=True)
     if serializer.is_valid():
@@ -467,11 +482,10 @@ class OrdersList(APIView):
     
     def get(self, request, format=None):
 
-        user = check_authorize(request)
+        user = check_authorize_get(request)
         if not user:
             return Response(status=status.HTTP_403_FORBIDDEN)
-        if not check_moderator(request):
-            return Response(status=status.HTTP_403_FORBIDDEN)
+        
         
         date_create = request.GET.get('date_create', None)
         date_accept = request.GET.get('date_accept', None)
@@ -525,10 +539,12 @@ class OrderDetail(APIView):
     
     def get(self, request, pk, format=None):
         """
-        Возвращает информацию об акции
+        Возвращает информацию о выбранном заказе
         """
-        if not check_moderator(request):
+        user = check_authorize_get(request)
+        if not user:
             return Response(status=status.HTTP_403_FORBIDDEN)
+        
 
         order = get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(order)
@@ -551,6 +567,10 @@ class OrderDetail(APIView):
         """
         Обновляет информацию об акции (для модератора)
         """
+        user = check_authorize(request)
+        if not user or user.is_moderator == False:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
         order = get_object_or_404(self.model_class, pk=pk)
         serializer = self.serializer_class(order, data=request.data, partial=True)
         if serializer.is_valid():
@@ -563,6 +583,8 @@ class OrderDetail(APIView):
         Меняет статус заказа на удалён
         Может делать только создатель
         """
+        #DELETE order/id/ не сделана аутентификация
+
         order = get_object_or_404(self.model_class, pk=pk)
         order.order_status = "удалён"
         order.save()  # Save the changes to the database
@@ -575,14 +597,12 @@ class UpdateUserStatus(APIView):
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
     def put(self, request, format=None):
-        if not check_moderator(request):
-            return Response(status=status.HTTP_403_FORBIDDEN)
         """
         Обновляет статус для пользователя
 
 {
-    "id_user" : 2,
-    "id_moderator" :1 
+    "id_user" : int,
+    "id_moderator" : int
 
 }
         """
@@ -592,6 +612,10 @@ class UpdateUserStatus(APIView):
             idModer = request.data.get('id_moderator')
         except:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        user = check_authorize(request)
+        if not user or user.id_user != idUser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
         
         self.model_class.objects.filter(id_user = idUser, id_moderator = idModer, order_status = 'введён').update(order_status = 'в работе', date_accept = datetime.now())
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -608,6 +632,12 @@ class UpdateModeratorStatus(APIView):
     def put(self, request, format=None):
         """
         Обновляет статус для модератора
+
+        {
+    "id_user" : int,
+    "id_moderator" : int
+
+}
         """
         
         try:
@@ -615,6 +645,9 @@ class UpdateModeratorStatus(APIView):
             idModer = request.data.get('id_moderator')
         except:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        user = check_authorize(request)
+        if not user or user.is_moderator == False:
+            return Response(status=status.HTTP_403_FORBIDDEN)
         
         order = self.model_class.objects.filter(id_user = idUser, order_status = 'в работе').update(date_finished= datetime.now(),order_status = 'завершён')
         
@@ -635,7 +668,11 @@ class Cargo_Order_methods(APIView):
             select * from delivery_orders as dor 
             inner join cargo_order as ca on ca.id_order = dor.id_order;
         '''
-        idUser = 2
+        user = check_authorize(request)
+        if not user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        idUser = user.id_user
+
         idModerator = 1 
         # del_object = get_object_or_404(self.method_class, pk=pk)
         active_order = DeliveryOrders.objects.filter( Q(order_status = 'введён') | Q(order_status = 'в работе'), id_user = idUser)
@@ -659,9 +696,11 @@ class Cargo_Order_methods(APIView):
          изменение количества в м-м
          pk - номер груза, количество которого надо изменить
         '''
-
-        idUser = 2
-        idModerator = 1 
+        user = check_authorize(request)
+        if not user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        idUser = user.id_user
+ 
         new_amount = request.data['amount']
         active_order = DeliveryOrders.objects.filter( Q(order_status = 'введён') | Q(order_status = 'в работе'), id_user = idUser)
         # print('PUT update_order (updating amount). Current order: ', active_order)
