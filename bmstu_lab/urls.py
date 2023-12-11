@@ -49,9 +49,10 @@ urlpatterns = [
     # path(r'cargo/<int:pk>/', views.get_detail, name='cargo-detail'),
     # path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
     # path(r'cargo/<int:pk>/delete/', views.delete_detail, name='cargo-delete'),
+    
     path(r'cargo/', views.CargoList.as_view(), name='cargo-list'),
     path(r'cargo/<int:pk>/', views.CargoDetail.as_view(), name='cargo-detail'),
-    path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
+    # path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
    
 
     path(r'orders/', views.OrdersList.as_view(), name='orders-list'),
@@ -59,8 +60,8 @@ urlpatterns = [
 
     path(r'update_order/<int:pk>/', views.Cargo_Order_methods.as_view(), name='update_order'),
 
-    path(r'update/form/', views.UpdateUserStatus.as_view(), name='update_status_user'),
-    path(r'update/unform/', views.UpdateModeratorStatus.as_view(), name='order-update_status_moderator'),
+    path(r'update/set_user_status/', views.UpdateUserStatus.as_view(), name='update_status_user'),
+    path(r'update/set_moderator_status/', views.UpdateModeratorStatus.as_view(), name='order-update_status_moderator'),
 
 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),

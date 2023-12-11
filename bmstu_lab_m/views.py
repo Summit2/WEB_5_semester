@@ -313,10 +313,9 @@ class CargoList(APIView):
         """
         Добавляет новый груз
         """
-        # user = check_authorize(request)
-        # print(user)
-        # if not user and user.is_moderator != True:
-        #     return Response(status=status.HTTP_403_FORBIDDEN)
+        user = check_authorize(request)
+        if not user or user.is_moderator == False:
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
 
 
@@ -445,6 +444,7 @@ class CargoDetail(APIView):
     def delete(self, request, pk, format=None):
         """
         Удаляет запись груза логически(через статус)
+        Доступно только для модератора
         """
         user = check_authorize(request)
         if not user or user.is_moderator == False:
@@ -458,18 +458,18 @@ class CargoDetail(APIView):
         return Response(status=status.HTTP_200_OK)
         
 
-@api_view(['Put'])
-def put_detail(request, pk, format=None):
-    """
-    Обновляет информацию о грузe (для пользователя)
-    """
-    #no user, why
-    cargo = get_object_or_404(Cargo, pk=pk)
-    serializer = CargoSerializer(cargo, data=request.data, partial=True)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# @api_view(['Put'])
+# def put_detail(request, pk, format=None):
+#     """
+#     Обновляет информацию о грузe (для пользователя)
+#     """
+#     #no user, why
+#     cargo = get_object_or_404(Cargo, pk=pk)
+#     serializer = CargoSerializer(cargo, data=request.data, partial=True)
+#     if serializer.is_valid():
+#         serializer.save()
+#         return Response(serializer.data)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 from django.utils.dateparse import parse_date
@@ -492,10 +492,10 @@ class OrdersList(APIView):
         date_finish = request.GET.get('date_finished', None)
         order_status = request.GET.get('order_status', None)
 
-        print(user)
+        print(f'Просмотр списка заявок для {user}')
         idUser = user.id_user
         
-        all_orders = self.model_class.objects.filter(id_user = idUser)
+        all_orders = self.model_class.objects.filter(id_user = idUser )
 
         if order_status is not None:
             
@@ -581,14 +581,27 @@ class OrderDetail(APIView):
     def delete(self, request, pk, format=None):
         """
         Меняет статус заказа на удалён
-        Может делать только создатель
+        Может делать только пользователь-создатель
         """
         #DELETE order/id/ не сделана аутентификация
-
-        order = get_object_or_404(self.model_class, pk=pk)
-        order.order_status = "удалён"
-        order.save()  # Save the changes to the database
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        user = check_authorize(request)
+        if not user or user.is_moderator == True:
+            print(f'DELETE order/id for {user} failed')
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        order = DeliveryOrders.objects.filter(id_order=pk, id_user = user.id_user).first()
+        curr_status = order.order_status
+        if curr_status != 'введён':
+            return Response(
+                {"error": f"удалить можно только черновую заявку"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        order.order_status = 'удалён'
+        order.save()
+        # order = get_object_or_404(self.model_class, pk=pk)
+        # order.order_status = "удалён"
+        # order.save()  # Save the changes to the database
+        return Response(status=status.HTTP_200_OK)
 
 
 
@@ -596,28 +609,43 @@ class OrderDetail(APIView):
 class UpdateUserStatus(APIView):
     model_class = DeliveryOrders
     serializer_class = OrdersSerializer
+    
     def put(self, request, format=None):
         """
         Обновляет статус для пользователя
+в работе  -> отменён
+введён -> в работе 
 
-{
-    "id_user" : int,
-    "id_moderator" : int
-
-}
         """
         
-        try:
-            idUser = request.data.get('id_user')
-            idModer = request.data.get('id_moderator')
-        except:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        # try:
+        #     idUser = request.data.get('id_user')
+        #     idModer = request.data.get('id_moderator')
+        # except:
+        #     return Response(status=status.HTTP_400_BAD_REQUEST)
         
+        # user = check_authorize(request)
+        # if not user or user.id_user != idUser:
+        #     return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        # self.model_class.objects.filter(id_user = idUser, id_moderator = idModer, order_status = 'введён').update(order_status = 'в работе', date_accept = datetime.now())
+        # return Response(status=status.HTTP_204_NO_CONTENT)
         user = check_authorize(request)
-        if not user or user.id_user != idUser:
+        if not user or user.is_moderator == True:
             return Response(status=status.HTTP_403_FORBIDDEN)
         
-        self.model_class.objects.filter(id_user = idUser, id_moderator = idModer, order_status = 'введён').update(order_status = 'в работе', date_accept = datetime.now())
+        idUser = user.id_user
+        data = request.data
+
+        if 'status' in data:
+            new_status = data['status']
+        else:
+            return Response({"Ошибка": "\'status\' отсутствует в теле запроса"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_status not in ['в работе', 'введён']:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        order = self.model_class.objects.filter(id_user = idUser, order_status = 'в работе').update(date_finished= datetime.now(),order_status = new_status)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
         
@@ -633,27 +661,40 @@ class UpdateModeratorStatus(APIView):
         """
         Обновляет статус для модератора
 
-        {
-    "id_user" : int,
-    "id_moderator" : int
-
-}
+Либо с "введён" на "в работе"
+Либо с "в работе" на "отменён"
         """
         
-        try:
-            idUser = request.data.get('id_user')
-            idModer = request.data.get('id_moderator')
-        except:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        # try:
+        #     idUser = request.data.get('id_user')
+        #     idModer = request.data.get('id_moderator')
+        # except:
+        #     return Response(status=status.HTTP_400_BAD_REQUEST)
+        
         user = check_authorize(request)
+        print(user)
         if not user or user.is_moderator == False:
             return Response(status=status.HTTP_403_FORBIDDEN)
         
-        order = self.model_class.objects.filter(id_user = idUser, order_status = 'в работе').update(date_finished= datetime.now(),order_status = 'завершён')
+        idUser = user.id_user
+        data = request.data
+
+        if 'status' in data:
+            new_status = data['status']
+        else:
+            return Response({"Ошибка": "\'status\' отсутствует в теле запроса"}, status=status.HTTP_400_BAD_REQUEST)
         
+        
+        if new_status not in ['в работе', 'отменён']:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        if new_status == 'в работе':
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            order = self.model_class.objects.filter(id_user = idUser, order_status = 'введён').update(date_finished= datetime.now(),order_status = new_status)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        elif new_status == 'отменён':
 
+            order = self.model_class.objects.filter(id_user = idUser, order_status = 'в работе').update(date_finished= datetime.now(),order_status = new_status)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 
@@ -673,7 +714,6 @@ class Cargo_Order_methods(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
         idUser = user.id_user
 
-        idModerator = 1 
         # del_object = get_object_or_404(self.method_class, pk=pk)
         active_order = DeliveryOrders.objects.filter( Q(order_status = 'введён') | Q(order_status = 'в работе'), id_user = idUser)
         
