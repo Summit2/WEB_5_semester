@@ -317,10 +317,6 @@ class CargoList(APIView):
         if not user or user.is_moderator == False:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-
-
-        # !!!!!
-
         serializer = self.serializer_class(data=request.data)
         
         if serializer.is_valid():
@@ -446,7 +442,7 @@ class CargoDetail(APIView):
         Удаляет запись груза логически(через статус)
         Доступно только для модератора
         """
-        user = check_authorize(request)
+        user = check_authorize_get(request)
         if not user or user.is_moderator == False:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
@@ -630,8 +626,9 @@ class UpdateUserStatus(APIView):
         
         # self.model_class.objects.filter(id_user = idUser, id_moderator = idModer, order_status = 'введён').update(order_status = 'в работе', date_accept = datetime.now())
         # return Response(status=status.HTTP_204_NO_CONTENT)
-        user = check_authorize(request)
+        user = check_authorize_get(request)
         if not user or user.is_moderator == True:
+            print('set_user_status if failed')
             return Response(status=status.HTTP_403_FORBIDDEN)
         
         idUser = user.id_user
@@ -671,7 +668,7 @@ class UpdateModeratorStatus(APIView):
         # except:
         #     return Response(status=status.HTTP_400_BAD_REQUEST)
         
-        user = check_authorize(request)
+        user = check_authorize_get(request)
         print(user)
         if not user or user.is_moderator == False:
             return Response(status=status.HTTP_403_FORBIDDEN)
