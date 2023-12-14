@@ -309,11 +309,12 @@ class OrdersList(APIView):
         date_accept = request.GET.get('date_accept', None)
         date_finish = request.GET.get('date_finished', None)
         order_status = request.GET.get('order_status', None)
-
+        search = request.GET.get('search', None)
         idUser = 2
         
         all_orders = self.model_class.objects.filter(id_user = idUser)
-
+        if search is not None:
+            all_orders = self.model_class.objects.filter(id_user = idUser, title__contains = search)
         if order_status is not None:
             
             all_orders = self.model_class.objects.filter(id_user = idUser, order_status = order_status)
