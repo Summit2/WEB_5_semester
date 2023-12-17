@@ -43,33 +43,36 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # path('', include(router.urls)),
-    # path(r'cargo/', views.get_list, name='cargo-list'),
-    # path(r'cargo/post/', views.post_list, name='cargo-post'),
-    # path(r'cargo/<int:pk>/', views.get_detail, name='cargo-detail'),
-    # path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
-    # path(r'cargo/<int:pk>/delete/', views.delete_detail, name='cargo-delete'),
-    
-    path(r'cargo/', views.CargoList.as_view(), name='cargo-list'),
-    path(r'cargo/<int:pk>/', views.CargoDetail.as_view(), name='cargo-detail'),
-    # path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
+    path(r'cargo/', views.cargo_list, name='cargo-list'),
+    path(r'cargo/new/', views.add_cargo, name='add-cargo'),
+   # path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
    
 
-    path(r'orders/', views.OrdersList.as_view(), name='orders-list'),
-    path(r'order/<int:pk>/', views.OrderDetail.as_view(), name='order-detail'),
+    path(r'cargo/<int:pk>/', views.get_cargo, name='cargo-detail'),
+    path(r'cargo/<int:pk>/add/', views.add_cargo_to_order, name='add-cargo-to-order'),
+    path(r'cargo/<int:pk>/edit/', views.edit_cargo, name='edit-cargo'),
+    path(r'cargo/<int:pk>/delete/', views.delete_cargo, name='delete-cargo'),
 
-    path(r'update_order/<int:pk>/', views.Cargo_Order_methods.as_view(), name='update_order'),
+    path(r'orders/', views.get_orders, name='orders-list'),
 
-    path(r'update/set_user_status/', views.UpdateUserStatus.as_view(), name='update_status_user'),
-    path(r'update/set_moderator_status/', views.UpdateModeratorStatus.as_view(), name='order-update_status_moderator'),
+    path(r'order/<int:pk>/', views.get_order_detail, name='order-detail'),
+    path(r'order/<int:pk>/update/', views.put_order_detail, name='order-update'),
+    path(r'order/<int:pk>/delete/', views.delete_order_detail, name='order-delete'),
 
+
+    path(r'update_order/<int:pk>/delete/', views.delete_cargo_order, name='delete_cargo_order'),
+    path(r'update_order/<int:pk>/put/', views.update_cargo_order_amount, name='update_cargo_order_amount'),
+
+
+    path(r'update_status/set_user_status/', views.set_user_status, name='set_user_status'),
+    path(r'update_status/set_moderator_status/', views.update_moderator_status, name='update_moderator_status'),
 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
 
-    path(r'api/users/login/', views.login_view, name="login"),
-    path(r'api/users/logout/', views.logout_view, name="logout"),
-    path(r'api/users/registration/', views.registration, name='registration'),
+    path(r'users/login/', views.login_view, name="login"),
+    path(r'users/logout/', views.logout_view, name="logout"),
+    path(r'users/registration/', views.registration, name='registration'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
  
 ]
