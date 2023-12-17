@@ -648,6 +648,7 @@ def delete_order_detail(request, pk, format=None):
             status=status.HTTP_400_BAD_REQUEST
         )
     order.order_status = 'удалён'
+    order.date_finish = datetime.now()
     order.save()
 
     return Response(status=status.HTTP_200_OK)
@@ -796,18 +797,16 @@ def delete_cargo_order(request, pk, format=None):
         #     return Response(status=status.HTTP_404_NOT_FOUND)
 
     # Now check if there are any cargos left in the active order
-    active_order = get_object_or_404(DeliveryOrders, pk=pk)
-    serializer = OrdersSerializer(active_order)
+    # active_order =DeliveryOrders.objects.filter(id_order=pk).first()
+    # serializer = OrdersSerializer(active_order)
 
-    response_data = serializer.data
 
-    cargo_in_order_ids = CargoOrder.objects.filter(id_order=pk)
+    cargo_in_order_ids = CargoOrder.objects.filter(id_order=active_order.id_order)
     list_of_cargo_ids = [i.id_cargo.id_cargo for i in cargo_in_order_ids]
     cargo_in_order = Cargo.objects.filter(id_cargo__in=list_of_cargo_ids)
 
     cargo_serializer = CargoSerializer(cargo_in_order, many=True)
-
-
+    
     try:
         cargo_in_active_order = cargo_serializer.data
         print('cargo_in_active_orders',cargo_in_active_order)
@@ -817,8 +816,9 @@ def delete_cargo_order(request, pk, format=None):
     
 
     if len(cargo_in_active_order) == 0:
-        id_order_to_delete = active_order.id_order
-        order = get_object_or_404(DeliveryOrders, pk=id_order_to_delete, id_user=user.id_user)
+  
+        # id_order_to_delete = active_order.id_order
+        order = active_order
         curr_status = order.order_status
         if curr_status != 'введён':
             return Response(
@@ -826,6 +826,7 @@ def delete_cargo_order(request, pk, format=None):
                 status=status.HTTP_400_BAD_REQUEST
             )
         order.order_status = 'удалён'
+        order.date_finish = datetime.now()
         order.save()
         
     return Response(status=status.HTTP_204_NO_CONTENT)
