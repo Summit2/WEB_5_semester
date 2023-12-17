@@ -43,6 +43,9 @@ from rest_framework.decorators import api_view
 import hashlib
 import secrets
 from django.utils import timezone
+import requests
+from django.http import JsonResponse
+
 
 '''Заявки на доставку грузов на Марс на Starship. 
 Услуги - товары, доставляемыe на Марс на Starship, 
@@ -108,10 +111,10 @@ def check_authorize_get(request):
     return None
 def check_authorize(request):
     response = login_view(request._request)
-    print(response)
+    # print(response)
     if response.status_code == 200:
         user = Users.objects.get(id_user=response.data.get('id_user'))
-        print(f'User in check_authorize: {user}')
+        # print(f'User in check_authorize: {user}')
         return user
     return None
 #ser Domain
@@ -562,14 +565,14 @@ def get_orders(request, format=None):
 @swagger_auto_schema(
     responses={
         200: OrdersSerializer,
-        403: 'Forbidden',
-        404: 'Not Found',
+        403: 'Доступ запрещен',
+        404: 'Данные не найдены',
     },
-    operation_description='Get information about a specific order.'
+    operation_description='Get метод для конкретного заказа пользователя, со списком грузов внутри'
 )
 def get_order_detail(request, pk, format=None):
     """
-    Get information about a specific order.
+    GET конкретного заказа для пользователя. внутри лежит список грузов для этого заказа
     """
     user = check_authorize_get(request)
 
@@ -676,7 +679,7 @@ def delete_order_detail(request, pk, format=None):
 @api_view(['PUT'])
 def set_user_status(request, format=None):
     """
-    Updates the status for a user's order.
+    Обновление статуса заказа пользователем
     в работе -> отменён
     введён -> в работе
     """
@@ -696,9 +699,16 @@ def set_user_status(request, format=None):
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
     queryset = DeliveryOrders.objects.filter(id_user=id_user, order_status='введён' if new_status == 'в работе' else 'в работе')
-    if queryset.exists():
-        queryset.update(date_finished=datetime.now(), order_status=new_status)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    if new_status == "в работе":
+        queryset = DeliveryOrders.objects.filter(id_user=id_user, order_status='введён')
+        if queryset.exists():
+            queryset.update( order_status=new_status)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+    elif new_status == 'отменён': 
+        queryset = DeliveryOrders.objects.filter(id_user=id_user, order_status='введён')
+        if queryset.exists():
+            queryset.update( date_finish=datetime.now(), order_status=new_status)
+            return Response(status=status.HTTP_204_NO_CONTENT)
     else:
         return Response({"Ошибка": "Заказ с указанным статусом не найден"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -709,8 +719,9 @@ def set_user_status(request, format=None):
 
 
 
-@api_view(['PUT'])
+
 @swagger_auto_schema(
+    method='PUT',
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
@@ -725,6 +736,7 @@ def set_user_status(request, format=None):
     },
     operation_description='Update moderator status',
 )
+@api_view(['PUT'])
 def update_moderator_status(request, format=None):
     """
     Updates the status for a moderator's order.
@@ -747,24 +759,27 @@ def update_moderator_status(request, format=None):
 
     queryset = DeliveryOrders.objects.filter(id_user=id_user, order_status='в работе')
     if queryset.exists():
-        queryset.update(date_finished=datetime.now(), order_status=new_status)
+        queryset.update(date_finish=datetime.now(), order_status=new_status)
         return Response(status=status.HTTP_204_NO_CONTENT)
     else:
         return Response({"Ошибка": "Заказ с указанным статусом не найден"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['DELETE'])
+
 @swagger_auto_schema(
+    method='DELETE',
     responses={
-        204: 'Service removed successfully',
-        403: 'Forbidden',
-        404: 'Not Found',
+        204: 'Успешно',
+        403: 'Доступ запрещен',
+        404: 'Найдено',
     },
-    operation_description='Delete a service from the order for a specific user'
+    operation_description='Удалить услугу из заявки для пользователя'
 )
+@api_view(['DELETE'])
 def delete_cargo_order(request, pk, format=None):
     """
-    Удаляет груз из заказа
+    pk - номер груза (cargo), который мы хотим удалить из заказа 
+    Удаляет груз из активного заказа
     Если груз был последний, удаляется и сам заказ
     """
     user = check_authorize(request)
@@ -772,21 +787,51 @@ def delete_cargo_order(request, pk, format=None):
         return Response(status=status.HTTP_403_FORBIDDEN)
     id_user = user.id_user
 
-    active_order = DeliveryOrders.objects.filter(
-        Q(order_status='введён') | Q(order_status='в работе'), id_user=id_user
-    )
-
-    if active_order.exists():
+    active_order = DeliveryOrders.objects.filter(order_status='введён', id_user=id_user).first()
+    if active_order is not None:
         del_result = CargoOrder.objects.filter(
-            id_order=active_order[0].id_order, id_cargo=pk
+            id_order=active_order.id_order, id_cargo=pk
         ).delete()
+        # if del_result[0] == 0:
+        #     return Response(status=status.HTTP_404_NOT_FOUND)
 
-        if del_result[0] == 0:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+    # Now check if there are any cargos left in the active order
+    active_order = get_object_or_404(DeliveryOrders, pk=pk)
+    serializer = OrdersSerializer(active_order)
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    response_data = serializer.data
 
-    return Response(status=status.HTTP_404_NOT_FOUND)
+    cargo_in_order_ids = CargoOrder.objects.filter(id_order=pk)
+    list_of_cargo_ids = [i.id_cargo.id_cargo for i in cargo_in_order_ids]
+    cargo_in_order = Cargo.objects.filter(id_cargo__in=list_of_cargo_ids)
+
+    cargo_serializer = CargoSerializer(cargo_in_order, many=True)
+
+
+    try:
+        cargo_in_active_order = cargo_serializer.data
+        print('cargo_in_active_orders',cargo_in_active_order)
+    except ValueError:
+        cargo_in_active_order = []
+
+    
+
+    if len(cargo_in_active_order) == 0:
+        id_order_to_delete = active_order.id_order
+        order = get_object_or_404(DeliveryOrders, pk=id_order_to_delete, id_user=user.id_user)
+        curr_status = order.order_status
+        if curr_status != 'введён':
+            return Response(
+                {"error": "удалить можно только черновую заявку"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        order.order_status = 'удалён'
+        order.save()
+        
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # return Response(status=status.HTTP_404_NOT_FOUND)
+
 
 
 
@@ -804,12 +849,13 @@ def delete_cargo_order(request, pk, format=None):
         403: 'Forbidden',
         404: 'Not Found',
     },
-    operation_description='Update the amount of a service in the order'
+    operation_description='Обновляет количество для определенного груза в заказе '
 )
 @api_view(['PUT'])
 def update_cargo_order_amount(request, pk, format=None):
     """
-    Updates the amount of a service in the order.
+    Меняет значение количества для определенного груза
+    Может быть только статус 'введён', потому что менять можно только черновую заявку
     """
     user = check_authorize(request)
     if not user:
@@ -818,7 +864,7 @@ def update_cargo_order_amount(request, pk, format=None):
 
     new_amount = request.data.get('amount')
     active_order = DeliveryOrders.objects.filter(
-        Q(order_status='введён') | Q(order_status='в работе'), id_user=id_user
+        Q(order_status='введён'), id_user=id_user  #| Q(order_status='в работе'), 
     )
 
     if active_order.exists():
