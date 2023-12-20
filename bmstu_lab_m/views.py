@@ -846,7 +846,6 @@ def delete_cargo_order(request, pk, format=None):
     
     try:
         cargo_in_active_order = cargo_serializer.data
-        # print('cargo_in_active_orders',cargo_in_active_order)
     except ValueError:
         cargo_in_active_order = []
 
