@@ -64,8 +64,8 @@ urlpatterns = [
     path(r'update_order/<int:pk>/put/', views.update_cargo_order_amount, name='update_cargo_order_amount'),
 
 
-    path(r'update_status/set_user_status/', views.set_user_status, name='set_user_status'),
-    path(r'update_status/set_moderator_status/', views.update_moderator_status, name='update_moderator_status'),
+    path(r'update_status/<int:pk>/set_user_status/', views.set_user_status, name='set_user_status'),
+    path(r'update_status/<int:pk>/set_moderator_status/', views.update_moderator_status, name='update_moderator_status'),
 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 

@@ -265,7 +265,7 @@ def logout_view(request):
 @api_view(['GET'])
 def cargo_list(request, format=None):
     """
-    Get a list of cargos with optional filtering.
+    Список грузов с фильтрацией
     """
     user = check_authorize_get(request)
 
@@ -309,19 +309,21 @@ def cargo_list(request, format=None):
     return Response(response_data)
 
 
-@api_view(['POST'])
+
 @swagger_auto_schema(
+    method='POST',
     request_body=CargoSerializer,
     responses={
         201: CargoSerializer(),
-        403: 'Forbidden',
-        400: 'Bad Request',
+        403: 'Доступ запрещен',
+        400: 'Неправильный запрос',
     },
-    operation_description='Add a new cargo'
+    operation_description='Добавление нового груза'
 )
+@api_view(['POST'])
 def add_cargo(request, format=None):
     """
-    Add a new cargo.
+    Добавление нового груза
     """
     user = check_authorize(request)
     if not user or user.is_moderator is False:
@@ -351,13 +353,13 @@ from datetime import datetime
 @swagger_auto_schema(
     responses={
         200: CargoSerializer(),
-        404: 'Not Found',
+        404: 'Не найдено',
     },
-    operation_description='Get cargo details'
+    operation_description='Получить информацию о конкретном грузе'
 )
 def get_cargo(request, pk, format=None):
     """
-    Get details of a specific cargo.
+    Получить информацию о конкретном грузе
     """
     cargo = Cargo.objects.filter(id_cargo=pk, is_deleted=False).first()
 
@@ -378,22 +380,24 @@ def get_cargo(request, pk, format=None):
 )
 def add_cargo_to_order(request, pk, format=None):
     """
+        Добавление заявки в заказ. Если заказ не создан, он создается
 
+        В итоге создается заявка, у которой есть создатель, но пока нет модератора
     """
     user = check_authorize(request)
     
-    if not user or not user.is_moderator:
+    if not user: # or not user.is_moderator:
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    ind_moderator = user.id_user
-    user_instance = get_object_or_404(Users, pk=ind_moderator)
+    ind_user = user.id_user
+    user_instance = get_object_or_404(Users, pk=ind_user)
     cargo_instance = get_object_or_404(Cargo, pk=pk)
 
     order = DeliveryOrders.objects.filter(id_user=user_instance, order_status='введён')
 
     if not order.exists():
         order_to_add = DeliveryOrders.objects.create(id_user=user_instance, 
-                                                     id_moderator=user_instance,
+                                                    #  id_moderator=user_instance,
                                                      order_status='введён',
                                                      date_create=datetime.now())
         order_to_add.save()
@@ -413,15 +417,15 @@ def add_cargo_to_order(request, pk, format=None):
     request_body=CargoSerializer,
     responses={
         200: CargoSerializer(),
-        400: 'Bad Request',
-        403: 'Forbidden',
-        404: 'Not Found',
+        400: 'Неправильный запрос',
+        403: 'Доступ запрещен',
+        404: 'Не найдено',
     },
-    operation_description='Edit cargo information (for moderators)'
+    operation_description='Редактирование информации о грузе (только для модераторов)'
 )
 def edit_cargo(request, pk, format=None):
     """
-    Edit information about a cargo (for moderators).
+    Редактирование информации о грузе (только для модераторов)
     """
     user = check_authorize(request)
     
@@ -445,14 +449,14 @@ def edit_cargo(request, pk, format=None):
 @swagger_auto_schema(
     responses={
         200: 'OK',
-        403: 'Forbidden',
-        404: 'Not Found',
+        403: 'Доступ запрещен',
+        404: 'Не найдено',
     },
-    operation_description='Delete a cargo (logical delete)'
+    operation_description='Удаление груза через изменение статуса'
 )
 def delete_cargo(request, pk, format=None):
     """
-    Delete a cargo (logical delete, only for moderators).
+    Удаление груза через изменение статуса
     """
     user = check_authorize(request)
     print(f'delete cargo/id/ for user {user}')
@@ -513,7 +517,8 @@ from django.utils.dateparse import parse_date
 @api_view(['GET'])
 def get_orders(request, format=None):
     """
-    Get the list of orders for a user.
+    Список заказов пользователя (для обычного пользователя)
+    Список заказов всех пользователей (для модератора)
     """
     user = check_authorize_get(request)
     
@@ -526,35 +531,70 @@ def get_orders(request, format=None):
     date_finish = request.GET.get('date_finished', None)
     order_status = request.GET.get('order_status', None)
 
-    print(f'Viewing the list of orders for {user}')
-    
+    # print(f'Viewing the list of orders for {user}')
     possible_statuses = ['в работе', 'завершён', 'отменён']
-    all_orders = DeliveryOrders.objects.filter(id_user=id_user, order_status__in=possible_statuses)
+    if user.is_moderator != True:
+        all_orders = DeliveryOrders.objects.filter(id_user=id_user, order_status__in=possible_statuses)
 
-    if order_status is not None:
-        all_orders = all_orders.filter(id_user=id_user, order_status=order_status)
+        if order_status is not None:
+            all_orders = all_orders.filter(id_user=id_user, order_status=order_status)
 
-    if date_create is not None:
-        if date_finish is not None:
-            all_orders = all_orders.filter(id_user=id_user, date_create=date_create, date_finish=date_finish)
-        else:
-            all_orders = all_orders.filter(id_user=id_user, date_create='1980-01-01', date_finish=date_finish)
+        if date_create is not None:
+            if date_finish is not None:
+                all_orders = all_orders.filter(id_user=id_user, date_create=date_create, date_finish=date_finish)
+            else:
+                all_orders = all_orders.filter(id_user=id_user, date_create='1980-01-01', date_finish=date_finish)
 
-    data = []
-    for order in all_orders:
-        user_instance = Users.objects.get(id_user=order.id_user.id_user)
-        moderator_instance = Users.objects.get(id_user=order.id_moderator.id_user)
-        data.append({
-            "pk": order.pk,
-            "id_order": order.id_order,
-            "user_email": user_instance.email,
-            "id_moderator": moderator_instance.id_user,
-            "order_status": order.order_status,
-            "date_create": order.date_create,
-            "date_accept": order.date_accept,
-            "date_finish": order.date_finish
-        })
+        data = []
+        for order in all_orders:
+            user_instance = Users.objects.get(id_user=order.id_user.id_user)
+            
+            moderator_instance = None
+            if order.id_moderator is not None:
+                moderator_instance = Users.objects.get(id_user=order.id_moderator.id_user)
+                
 
+            data.append({
+                "pk": order.pk,
+                "id_order": order.id_order,
+                "user_email": user_instance.email,
+                "moderator_email": moderator_instance.email if moderator_instance is not None else None,
+                "order_status": order.order_status,
+                "date_create": order.date_create,
+                "date_accept": order.date_accept,
+                "date_finish": order.date_finish
+            })
+    else:
+        all_orders = DeliveryOrders.objects.filter( order_status__in=possible_statuses)
+
+        if order_status is not None:
+            all_orders = all_orders.filter( order_status=order_status)
+
+        if date_create is not None:
+            if date_finish is not None:
+                all_orders = all_orders.filter( date_create=date_create, date_finish=date_finish)
+            else:
+                all_orders = all_orders.filter( date_create='1980-01-01', date_finish=date_finish)
+
+        data = []
+        for order in all_orders:
+            user_instance = Users.objects.get(id_user=order.id_user.id_user)
+            
+            moderator_instance = None
+            if order.id_moderator is not None:
+                moderator_instance = Users.objects.get(id_user=order.id_moderator.id_user)
+                
+                
+            data.append({
+                "pk": order.pk,
+                "id_order": order.id_order,
+                "user_email": user_instance.email,
+                "moderator_email": moderator_instance.email if moderator_instance is not None else None,
+                "order_status": order.order_status,
+                "date_create": order.date_create,
+                "date_accept": order.date_accept,
+                "date_finish": order.date_finish
+            })
     return Response(data)
 
 
@@ -599,15 +639,15 @@ def get_order_detail(request, pk, format=None):
 @swagger_auto_schema(
     responses={
         200: OrdersSerializer,
-        400: 'Bad Request',
-        403: 'Forbidden',
-        404: 'Not Found',
+        400: 'Неправильный запрос',
+        403: 'Доступ запрещен',
+        404: 'Не найдено',
     },
-    operation_description='Update information about a specific order.'
+    operation_description='обновление информации о конкретном заказе'
 )
 def put_order_detail(request, pk, format=None):
     """
-    Update information about a specific order.
+    Обновление информации о конкретном заказе
     """
     user = check_authorize(request)
     if not user or not user.is_moderator:
@@ -625,11 +665,11 @@ def put_order_detail(request, pk, format=None):
 @swagger_auto_schema(
     responses={
         200: 'OK',
-        400: 'Bad Request',
-        403: 'Forbidden',
-        404: 'Not Found',
+        400: 'Неправильный запрос',
+        403: 'Доступ запрещен',
+        404: 'Не найдено',
     },
-    operation_description='Delete a specific order.'
+    operation_description='Удалить конкретный заказ'
 )
 def delete_order_detail(request, pk, format=None):
     """
@@ -672,13 +712,13 @@ def delete_order_detail(request, pk, format=None):
     ),
     responses={
         204: openapi.Response(description='Status updated successfully'),
-        400: openapi.Response(description='Bad Request'),
-        403: openapi.Response(description='Forbidden'),
+        400: openapi.Response(description='Неправильный запрос'),
+        403: openapi.Response(description='Доступ запрещен'),
     },
     operation_description='Update user status',
 )
 @api_view(['PUT'])
-def set_user_status(request, format=None):
+def set_user_status(request, pk, format=None):
     """
     Обновление статуса заказа пользователем
     в работе -> отменён
@@ -732,15 +772,16 @@ def set_user_status(request, format=None):
     ),
     responses={
         204: openapi.Response(description='Status updated successfully'),
-        400: openapi.Response(description='Bad Request'),
-        403: openapi.Response(description='Forbidden'),
+        400: openapi.Response(description='Неправильный запрос'),
+        403: openapi.Response(description='Доступ запрещен'),
     },
-    operation_description='Update moderator status',
+    operation_description='Обновить статус модератором',
 )
 @api_view(['PUT'])
-def update_moderator_status(request, format=None):
+def update_moderator_status(request, pk, format=None):
     """
-    Updates the status for a moderator's order.
+    Возможные статусы:
+
     в работе -> завершён
     в работе -> отменён
     """
@@ -750,7 +791,7 @@ def update_moderator_status(request, format=None):
 
     id_user = user.id_user
     data = request.data
-
+    print(data)
     if 'status' not in data:
         return Response({"Ошибка": "\'status\' отсутствует в теле запроса"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -758,9 +799,10 @@ def update_moderator_status(request, format=None):
     if new_status not in ['завершён', 'отменён']:
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    queryset = DeliveryOrders.objects.filter(id_user=id_user, order_status='в работе')
+    queryset = DeliveryOrders.objects.filter( id_order = pk, order_status='в работе')
+    print(queryset)
     if queryset.exists():
-        queryset.update(date_finish=datetime.now(), order_status=new_status)
+        queryset.update(date_accept =datetime.now(), date_finish=datetime.now(), order_status=new_status)
         return Response(status=status.HTTP_204_NO_CONTENT)
     else:
         return Response({"Ошибка": "Заказ с указанным статусом не найден"}, status=status.HTTP_400_BAD_REQUEST)
@@ -793,14 +835,9 @@ def delete_cargo_order(request, pk, format=None):
         del_result = CargoOrder.objects.filter(
             id_order=active_order.id_order, id_cargo=pk
         ).delete()
-        # if del_result[0] == 0:
-        #     return Response(status=status.HTTP_404_NOT_FOUND)
+
 
     # Now check if there are any cargos left in the active order
-    # active_order =DeliveryOrders.objects.filter(id_order=pk).first()
-    # serializer = OrdersSerializer(active_order)
-
-
     cargo_in_order_ids = CargoOrder.objects.filter(id_order=active_order.id_order)
     list_of_cargo_ids = [i.id_cargo.id_cargo for i in cargo_in_order_ids]
     cargo_in_order = Cargo.objects.filter(id_cargo__in=list_of_cargo_ids)
@@ -809,15 +846,14 @@ def delete_cargo_order(request, pk, format=None):
     
     try:
         cargo_in_active_order = cargo_serializer.data
-        print('cargo_in_active_orders',cargo_in_active_order)
+        # print('cargo_in_active_orders',cargo_in_active_order)
     except ValueError:
         cargo_in_active_order = []
 
     
 
     if len(cargo_in_active_order) == 0:
-  
-        # id_order_to_delete = active_order.id_order
+        
         order = active_order
         curr_status = order.order_status
         if curr_status != 'введён':
@@ -831,7 +867,7 @@ def delete_cargo_order(request, pk, format=None):
         
     return Response(status=status.HTTP_204_NO_CONTENT)
 
-    # return Response(status=status.HTTP_404_NOT_FOUND)
+
 
 
 
@@ -847,8 +883,8 @@ def delete_cargo_order(request, pk, format=None):
     ),
     responses={
         204: 'Amount updated successfully',
-        403: 'Forbidden',
-        404: 'Not Found',
+        403: 'Доступ запрещен',
+        404: 'Не найдено',
     },
     operation_description='Обновляет количество для определенного груза в заказе '
 )
