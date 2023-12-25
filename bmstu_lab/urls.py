@@ -43,36 +43,36 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    path(r'cargo/', views.cargo_list, name='cargo-list'),
-    path(r'cargo/new/', views.add_cargo, name='add-cargo'),
-   # path(r'cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
+    path(r'api/cargo/', views.cargo_list, name='cargo-list'),
+    path(r'api/cargo/new/', views.add_cargo, name='add-cargo'),
+   # path(r'api/cargo/<int:pk>/put/', views.put_detail, name='cargo-put'),
    
 
-    path(r'cargo/<int:pk>/', views.get_cargo, name='cargo-detail'),
-    path(r'cargo/<int:pk>/add/', views.add_cargo_to_order, name='add-cargo-to-order'),
-    path(r'cargo/<int:pk>/edit/', views.edit_cargo, name='edit-cargo'),
-    path(r'cargo/<int:pk>/delete/', views.delete_cargo, name='delete-cargo'),
+    path(r'api/cargo/<int:pk>/', views.get_cargo, name='cargo-detail'),
+    path(r'api/cargo/<int:pk>/add/', views.add_cargo_to_order, name='add-cargo-to-order'),
+    path(r'api/cargo/<int:pk>/edit/', views.edit_cargo, name='edit-cargo'),
+    path(r'api/cargo/<int:pk>/delete/', views.delete_cargo, name='delete-cargo'),
 
-    path(r'orders/', views.get_orders, name='orders-list'),
+    path(r'api/orders/', views.get_orders, name='orders-list'),
 
-    path(r'order/<int:pk>/', views.get_order_detail, name='order-detail'),
-    path(r'order/<int:pk>/update/', views.put_order_detail, name='order-update'),
-    path(r'order/<int:pk>/delete/', views.delete_order_detail, name='order-delete'),
-
-
-    path(r'update_order/<int:pk>/delete/', views.delete_cargo_order, name='delete_cargo_order'),
-    path(r'update_order/<int:pk>/put/', views.update_cargo_order_amount, name='update_cargo_order_amount'),
+    path(r'api/order/<int:pk>/', views.get_order_detail, name='order-detail'),
+    path(r'api/order/<int:pk>/update/', views.put_order_detail, name='order-update'),
+    path(r'api/order/<int:pk>/delete/', views.delete_order_detail, name='order-delete'),
 
 
-    path(r'update_status/<int:pk>/set_user_status/', views.set_user_status, name='set_user_status'),
-    path(r'update_status/<int:pk>/set_moderator_status/', views.update_moderator_status, name='update_moderator_status'),
+    path(r'api/update_order/<int:pk>/delete/', views.delete_cargo_order, name='delete_cargo_order'),
+    path(r'api/update_order/<int:pk>/put/', views.update_cargo_order_amount, name='update_cargo_order_amount'),
+
+
+    path(r'api/update_status/<int:pk>/set_user_status/', views.set_user_status, name='set_user_status'),
+    path(r'api/update_status/<int:pk>/set_moderator_status/', views.update_moderator_status, name='update_moderator_status'),
 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
 
-    path(r'users/login/', views.login_view, name="login"),
-    path(r'users/logout/', views.logout_view, name="logout"),
-    path(r'users/registration/', views.registration, name='registration'),
+    path(r'api/users/login/', views.login_view, name="login"),
+    path(r'api/users/logout/', views.logout_view, name="logout"),
+    path(r'api/users/registration/', views.registration, name='registration'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
  
 ]
