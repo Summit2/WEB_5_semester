@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'bmstu_lab_m',
     'rest_framework',
     'drf_yasg',
+    'corsheaders',
     # 'starship_delivery'
     
     # 'auth_group',
@@ -69,6 +70,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
      'corsheaders.middleware.CorsMiddleware',
+     
 ]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Replace with your Vite app's URL

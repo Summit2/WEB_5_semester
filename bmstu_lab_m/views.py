@@ -209,7 +209,7 @@ def login_view(request, format=None):
         session_hash = hashlib.sha256(f'{user.id_user}:{email_}:{random_part}'.encode()).hexdigest()
         set_key(session_hash, user.id_user)
 
-        response = JsonResponse({'id_user': user.id_user})
+        response = JsonResponse({'id_user': user.id_user, 'is_moderator' : user.is_moderator})
         response.set_cookie('session_key', session_hash, max_age=86400)
         return response
 
@@ -519,6 +519,13 @@ def get_orders(request, format=None):
     """
     Список заказов пользователя (для обычного пользователя)
     Список заказов всех пользователей (для модератора)
+
+
+    SELECT Delivery_orders.id_order ,Delivery_orders.order_status, Delivery_orders.id_user, Delivery_orders.id_moderator,Cargo.id_cargo , cargo.title
+        FROM Delivery_orders
+        INNER JOIN Cargo_Order ON Delivery_orders.id_order = Cargo_order.id_order
+        INNER JOIN Cargo ON Cargo_order.id_cargo = Cargo.id_cargo
+		order by Delivery_orders.id_order;
     """
     user = check_authorize_get(request)
     
@@ -529,23 +536,29 @@ def get_orders(request, format=None):
     date_create = request.GET.get('date_create', None)
     # date_accept = request.GET.get('date_accept', None)
     date_finish = request.GET.get('date_finished', None)
-    order_status = request.GET.get('order_status', None)
+    orderStatus = request.GET.get('order_status', None)
 
-    # print(f'Viewing the list of orders for {user}')
+    if date_create:
+        date_create = datetime.strptime(date_create, '%d.%m.%Y').date()
+    if date_finish:
+        date_finish = datetime.strptime(date_finish, '%d.%m.%Y').date()
+  
+
     possible_statuses = ['в работе', 'завершён', 'отменён']
     if user.is_moderator != True:
         all_orders = DeliveryOrders.objects.filter(id_user=id_user, order_status__in=possible_statuses)
 
-        if order_status is not None:
-            all_orders = all_orders.filter(id_user=id_user, order_status=order_status)
+        if orderStatus is not None:
+            all_orders = all_orders.filter(id_user=id_user, order_status=orderStatus)
 
         if date_create is not None:
             if date_finish is not None:
-                all_orders = all_orders.filter(id_user=id_user, date_create=date_create, date_finish=date_finish)
+                all_orders = all_orders.filter(id_user=id_user, date_create__gte=date_create, date_finish__lte=date_finish)
             else:
-                all_orders = all_orders.filter(id_user=id_user, date_create='1980-01-01', date_finish=date_finish)
+                all_orders = all_orders.filter(id_user=id_user, date_create__gte='1980-01-01')
 
         data = []
+        
         for order in all_orders:
             user_instance = Users.objects.get(id_user=order.id_user.id_user)
             
@@ -565,17 +578,17 @@ def get_orders(request, format=None):
                 "date_finish": order.date_finish
             })
     else:
-        all_orders = DeliveryOrders.objects.filter( order_status__in=possible_statuses)
-
-        if order_status is not None:
-            all_orders = all_orders.filter( order_status=order_status)
-
+        all_orders = DeliveryOrders.objects.filter( order_status__in=possible_statuses).order_by("date_accept")
+        
+        if orderStatus is not None:
+            all_orders = all_orders.filter( order_status=orderStatus).order_by("date_accept")
+        
         if date_create is not None:
             if date_finish is not None:
-                all_orders = all_orders.filter( date_create=date_create, date_finish=date_finish)
+                all_orders = all_orders.filter( date_accept__gte=date_create, date_accept__lte=date_finish).order_by("date_accept")
             else:
-                all_orders = all_orders.filter( date_create='1980-01-01', date_finish=date_finish)
-
+                all_orders = all_orders.filter(  date_accept__lte=date_finish).order_by("date_accept")
+        
         data = []
         for order in all_orders:
             user_instance = Users.objects.get(id_user=order.id_user.id_user)
@@ -802,7 +815,7 @@ def update_moderator_status(request, pk, format=None):
     queryset = DeliveryOrders.objects.filter( id_order = pk, order_status='в работе')
     print(queryset)
     if queryset.exists():
-        queryset.update(date_accept =datetime.now(), date_finish=datetime.now(), order_status=new_status)
+        queryset.update(id_moderator = id_user ,date_accept =datetime.now(), date_finish=datetime.now(), order_status=new_status)
         return Response(status=status.HTTP_204_NO_CONTENT)
     else:
         return Response({"Ошибка": "Заказ с указанным статусом не найден"}, status=status.HTTP_400_BAD_REQUEST)
