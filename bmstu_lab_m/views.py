@@ -45,7 +45,7 @@ import secrets
 from django.utils import timezone
 import requests
 from django.http import JsonResponse
-
+import psycopg2
 
 '''Заявки на доставку грузов на Марс на Starship. 
 Услуги - товары, доставляемыe на Марс на Starship, 
@@ -309,6 +309,9 @@ def cargo_list(request, format=None):
     return Response(response_data)
 
 
+from PIL import Image
+import io
+import base64
 
 @swagger_auto_schema(
     method='POST',
@@ -320,25 +323,44 @@ def cargo_list(request, format=None):
     },
     operation_description='Добавление нового груза'
 )
+
 @api_view(['POST'])
 def add_cargo(request, format=None):
     """
     Добавление нового груза
     """
     user = check_authorize(request)
-    if not user or user.is_moderator is False:
+    if not user or not user.is_moderator:
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    serializer = CargoSerializer(data=request.data)
+    # Extract relevant data from the request
+    cargo_data = {
+        "title": request.data.get("title", ""),
+        "image_url": request.data.get("image_url", ""),
+        "weight": request.data.get("weight", 0),
+        "description": request.data.get("description", ""),
+        "is_deleted": False,
+    }
 
-    if serializer.is_valid():
-        bi_image_path = request.data.get('image_binary')
-        binary_data = new_method(bi_image_path)
-        serializer.save(image_binary=binary_data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    if 'image_binary' in request.data:
+        
+        binary_data = request.data.get('image_binary', '')
+        print(binary_data)
+        binary_data = base64.b64decode(binary_data)
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Ensure binary_data is in bytes
+        if isinstance(binary_data, str):
+            binary_data = binary_data.encode('utf-8')
 
+        cargo_data['image_binary'] = binary_data
+
+
+    cargo_instance = Cargo.objects.create(**cargo_data)
+
+    serializer = CargoSerializer(cargo_instance)
+
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 def new_method(bi_image_path):
     with open(bi_image_path, 'rb') as file:
