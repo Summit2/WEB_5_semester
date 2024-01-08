@@ -268,21 +268,10 @@ def cargo_list(request, format=None):
     Список грузов с фильтрацией
     """
     user = check_authorize_get(request)
-
-    if not user:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     how_to_filter = request.GET.get('filter', None)
     if_search = request.GET.get('search', None)
 
-    id_user = user.id_user
-
-    data = DeliveryOrders.objects.filter(id_user=id_user, order_status='введён')
-
-    try:
-        id_order_draft = data[0].id_order
-    except IndexError:
-        id_order_draft = None
+    
 
     if how_to_filter is not None:
         if how_to_filter == 'weight' or how_to_filter == 'title':
@@ -300,12 +289,23 @@ def cargo_list(request, format=None):
     serializer = CargoSerializer(cargos, many=True)
 
     serializer_data = serializer.data
-
+    
     response_data = {
         'data': serializer_data,
-        'id_order_draft': id_order_draft
+       
     }
 
+    if user:
+        id_user = user.id_user
+
+        data = DeliveryOrders.objects.filter(id_user=id_user, order_status='введён')
+
+        try:
+            id_order_draft = data[0].id_order
+        except IndexError:
+            id_order_draft = None
+
+        response_data[ 'id_order_draft'] =  id_order_draft
     return Response(response_data)
 
 
@@ -342,7 +342,13 @@ def add_cargo(request, format=None):
     if 'image_binary' in request.FILES:
         image_file = request.FILES['image_binary']
         cargo_data['image_binary'] = image_file.read()
-
+    else:
+        # cargo_data['image_binary']= new_method('/home/ilya/Рабочий стол/BMSTU/5 semester/WEB/bmstu_lab/bmstu_lab_m/default.jpg')
+        try:
+            cargo_data['image_binary']= new_method('/home/ilya/Рабочий стол/BMSTU/5 semester/WEB/bmstu_lab/bmstu_lab_m/default.jpg')
+        except:
+            print()
+            return Response(status=status.HTTP_400_BAD_REQUEST)
     cargo_instance = Cargo.objects.create(**cargo_data)
     serializer = CargoSerializer(cargo_instance)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -435,22 +441,35 @@ def edit_cargo(request, pk, format=None):
     Редактирование информации о грузе (только для модераторов)
     """
     user = check_authorize(request)
-    
     if not user or not user.is_moderator:
         return Response(status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+   
+        cargo_instance = Cargo.objects.get(pk=pk)
+        
 
-    ind_moderator = user.id_user
+        cargo_instance.title = request.data.get("title", cargo_instance.title)
+        cargo_instance.weight = request.data.get("weight", cargo_instance.weight)
+        cargo_instance.description = request.data.get("description", cargo_instance.description)
+        
+       
+        if 'image_binary' in request.FILES:
+            image_file = request.FILES['image_binary']
+            cargo_instance.image_binary = image_file.read()
 
-    if Users.objects.filter(id_user=ind_moderator, is_moderator=True).exists():
-        cargo = get_object_or_404(Cargo, pk=pk)
-        serializer = CargoSerializer(cargo, data=request.data, partial=True)
+        
+        cargo_instance.save()
 
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return Response(status=status.HTTP_403_FORBIDDEN)
+
+        serializer = CargoSerializer(cargo_instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    except Cargo.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+
+        return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['DELETE'])
 @swagger_auto_schema(
@@ -935,4 +954,41 @@ def update_cargo_order_amount(request, pk, format=None):
 
 
     #!!!!!
+@swagger_auto_schema(
+    method='PUT',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        
+    ),
+    responses={
+        204: 'Amount updated successfully',
+        403: 'Доступ запрещен',
+        404: 'Не найдено',
+    },
+    operation_description=''
+)
+@api_view(['PUT'])
+def async_task(request, format=None):
+    user = check_authorize(request)
+    if not user:
+        return Response(status=status.HTTP_403_FORBIDDEN)
     
+    idOrder = request.data.get("id_order")
+    if idOrder is None:
+        return Response({"error": "id_order not provided"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    session_key = request.headers.get('Cookie')[12:]
+    print(session_key)
+    # Make a request to localhost:8080
+    url = "http://localhost:8080/deliver/"
+    headers = {'Content-Type': 'application/json'}
+    # Include session_key in the data payload
+    data = {"id_order": idOrder, "session_key": session_key}
+    response = requests.post(url, headers=headers, json=data)
+
+    if response.status_code == 200:
+        print(response)
+        return Response(status=status.HTTP_200_OK)
+    else:
+        print(response)
+        return Response(status=status.HTTP_404_NOT_FOUND)

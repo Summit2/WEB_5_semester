@@ -67,6 +67,9 @@ urlpatterns = [
     path(r'api/update_status/<int:pk>/set_user_status/', views.set_user_status, name='set_user_status'),
     path(r'api/update_status/<int:pk>/set_moderator_status/', views.update_moderator_status, name='update_moderator_status'),
 
+    path(r'api/async_task/' , views.async_task, name='make_async_task'),
+
+    
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
 
@@ -74,6 +77,7 @@ urlpatterns = [
     path(r'api/users/logout/', views.logout_view, name="logout"),
     path(r'api/users/registration/', views.registration, name='registration'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    
  
 ]
 
