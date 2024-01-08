@@ -604,7 +604,7 @@ def get_orders(request, format=None):
                 "date_finish": order.date_finish
             })
     else:
-        all_orders = DeliveryOrders.objects.filter( order_status__in=possible_statuses).order_by("date_accept")
+        all_orders = DeliveryOrders.objects.filter( order_status__in=possible_statuses).order_by("-id_order")
         
         if orderStatus is not None:
             all_orders = all_orders.filter( order_status=orderStatus).order_by("date_accept")
