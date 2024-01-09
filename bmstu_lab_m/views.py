@@ -209,7 +209,7 @@ def login_view(request, format=None):
         session_hash = hashlib.sha256(f'{user.id_user}:{email_}:{random_part}'.encode()).hexdigest()
         set_key(session_hash, user.id_user)
 
-        response = JsonResponse({'id_user': user.id_user, 'is_moderator' : user.is_moderator})
+        response = JsonResponse({'first_name': user.first_name, "last_name" : user.last_name, 'id_user': user.id_user, 'is_moderator' : user.is_moderator})
         response.set_cookie('session_key', session_hash, max_age=86400)
         return response
 
