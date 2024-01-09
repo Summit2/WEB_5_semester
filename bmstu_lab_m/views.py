@@ -1001,7 +1001,8 @@ def async_task(request, format=None):
     
 
     order = get_object_or_404(DeliveryOrders, pk=idOrder)
-    data = {"order_status" : 'завершён'}
+    data = {"order_status" : 'завершён',
+            "id_moderator" : user.id_user }
     serializer = OrdersSerializer(order, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
