@@ -650,9 +650,6 @@ def get_orders(request, format=None):
     operation_description='Get метод для конкретного заказа пользователя, со списком грузов внутри'
 )
 def get_order_detail(request, pk, format=None):
-    """
-    GET конкретного заказа для пользователя. внутри лежит список грузов для этого заказа
-    """
     user = check_authorize_get(request)
 
     if not user:
@@ -663,16 +660,20 @@ def get_order_detail(request, pk, format=None):
 
     response_data = serializer.data
 
-    cargo_in_order_ids = CargoOrder.objects.filter(id_order=pk)
-    list_of_cargo_ids = [i.id_cargo.id_cargo for i in cargo_in_order_ids]
-    cargo_in_order = Cargo.objects.filter(id_cargo__in=list_of_cargo_ids)
+    # Get CargoOrder instances related to the order
+    cargo_in_order_qs = CargoOrder.objects.filter(id_order=pk)
 
-    cargo_serializer = CargoSerializer(cargo_in_order, many=True)
+    # Build a list of cargo information including the amount from CargoOrder
+    cargo_in_order_list = []
+    for cargo_order in cargo_in_order_qs:
+        cargo = Cargo.objects.get(pk=cargo_order.id_cargo.pk)
+        cargo_data = CargoSerializer(cargo).data
+        cargo_data['amount'] = cargo_order.amount  # Include the amount in the response
+        cargo_in_order_list.append(cargo_data)
 
-    response_data['Cargo_in_Order'] = cargo_serializer.data
+    response_data['Cargo_in_Order'] = cargo_in_order_list
 
     return Response(response_data, status=status.HTTP_200_OK)
-
 
 @api_view(['PUT'])
 @swagger_auto_schema(
@@ -938,10 +939,11 @@ def update_cargo_order_amount(request, pk, format=None):
     id_user = user.id_user
 
     new_amount = request.data.get('amount')
+    print(new_amount)
     active_order = DeliveryOrders.objects.filter(
         Q(order_status='введён'), id_user=id_user  #| Q(order_status='в работе'), 
     )
-
+    print(active_order)
     if active_order.exists():
         CargoOrder.objects.filter(
             id_order=active_order[0].id_order, id_cargo=pk
