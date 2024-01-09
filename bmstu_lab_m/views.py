@@ -572,7 +572,7 @@ def get_orders(request, format=None):
 
     possible_statuses = ['в работе', 'завершён', 'отменён']
     if user.is_moderator != True:
-        all_orders = DeliveryOrders.objects.filter(id_user=id_user, order_status__in=possible_statuses)
+        all_orders = DeliveryOrders.objects.filter(id_user=id_user, order_status__in=possible_statuses).order_by('-id_order')
 
         if orderStatus is not None:
             all_orders = all_orders.filter(id_user=id_user, order_status=orderStatus)
@@ -606,14 +606,15 @@ def get_orders(request, format=None):
     else:
         all_orders = DeliveryOrders.objects.filter( order_status__in=possible_statuses).order_by("-id_order")
         
+        
         if orderStatus is not None:
-            all_orders = all_orders.filter( order_status=orderStatus).order_by("date_accept")
+            all_orders = all_orders.filter( order_status=orderStatus)
         
         if date_create is not None:
             if date_finish is not None:
-                all_orders = all_orders.filter( date_accept__gte=date_create, date_accept__lte=date_finish).order_by("date_accept")
+                all_orders = all_orders.filter( date_accept__gte=date_create, date_accept__lte=date_finish)
             else:
-                all_orders = all_orders.filter(  date_accept__lte=date_finish).order_by("date_accept")
+                all_orders = all_orders.filter(  date_accept__lte=date_finish)
         
         data = []
         for order in all_orders:
@@ -661,7 +662,7 @@ def get_order_detail(request, pk, format=None):
     response_data = serializer.data
 
     # Get CargoOrder instances related to the order
-    cargo_in_order_qs = CargoOrder.objects.filter(id_order=pk)
+    cargo_in_order_qs = CargoOrder.objects.filter(id_order=pk).order_by("id_cargo")
 
     # Build a list of cargo information including the amount from CargoOrder
     cargo_in_order_list = []
@@ -675,6 +676,12 @@ def get_order_detail(request, pk, format=None):
 
     return Response(response_data, status=status.HTTP_200_OK)
 
+
+from datetime import datetime
+import dateutil.parser
+
+
+
 @api_view(['PUT'])
 @swagger_auto_schema(
     responses={
@@ -686,19 +693,32 @@ def get_order_detail(request, pk, format=None):
     operation_description='обновление информации о конкретном заказе'
 )
 def put_order_detail(request, pk, format=None):
-    """
-    Обновление информации о конкретном заказе
-    """
-    user = check_authorize(request)
-    if not user or not user.is_moderator:
-        return Response(status=status.HTTP_403_FORBIDDEN)
+  """
+  Обновление информации о конкретном заказе
+  """
+  user = check_authorize(request)
+  if not user or not user.is_moderator:
+      return Response(status=status.HTTP_403_FORBIDDEN)
 
-    order = get_object_or_404(DeliveryOrders, pk=pk)
-    serializer = OrdersSerializer(order, data=request.data, partial=True)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  order = get_object_or_404(DeliveryOrders, pk=pk)
+
+  # Check if date_finish exists in request.data
+  if 'date_finish' in request.data:
+      # Convert date_finish to datetime object
+      date_finish = dateutil.parser.parse(request.data['date_finish'])
+      # Update date_finish in request.data
+      request.data['date_finish'] = date_finish
+
+  # Update order attributes directly
+  for key, value in request.data.items():
+      setattr(order, key, value)
+
+  try:
+      # Save the updated order
+      order.save()
+      return Response({"message": "Order updated successfully"}, status=status.HTTP_200_OK)
+  except Exception as e:
+      return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['DELETE'])
@@ -783,7 +803,7 @@ def set_user_status(request, pk, format=None):
     if new_status == "в работе":
         queryset = DeliveryOrders.objects.filter(id_user=id_user, order_status='введён')
         if queryset.exists():
-            queryset.update( order_status=new_status)
+            queryset.update( order_status=new_status ,date_accept =datetime.now())
             return Response(status=status.HTTP_204_NO_CONTENT)
     elif new_status == 'отменён': 
         queryset = DeliveryOrders.objects.filter(id_user=id_user, order_status='введён')
@@ -842,7 +862,7 @@ def update_moderator_status(request, pk, format=None):
     queryset = DeliveryOrders.objects.filter( id_order = pk, order_status='в работе')
     print(queryset)
     if queryset.exists():
-        queryset.update(id_moderator = id_user ,date_accept =datetime.now(), date_finish=datetime.now(), order_status=new_status)
+        queryset.update(id_moderator = id_user , date_finish=datetime.now(), order_status=new_status)
         return Response(status=status.HTTP_204_NO_CONTENT)
     else:
         return Response({"Ошибка": "Заказ с указанным статусом не найден"}, status=status.HTTP_400_BAD_REQUEST)
@@ -979,6 +999,16 @@ def async_task(request, format=None):
     if idOrder is None:
         return Response({"error": "id_order not provided"}, status=status.HTTP_400_BAD_REQUEST)
     
+
+    order = get_object_or_404(DeliveryOrders, pk=idOrder)
+    data = {"order_status" : 'завершён'}
+    serializer = OrdersSerializer(order, data=data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        print('is_valid')
+    
+    
+
     session_key = request.headers.get('Cookie')[12:]
     print(session_key)
     # Make a request to localhost:8080
